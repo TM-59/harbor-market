@@ -1,0 +1,23 @@
+name: CI
+on:
+  pull_request:
+    paths: ['src/**', 'tests/**', 'scripts/**', 'manage.py', 'pyproject.toml', 'uv.lock', 'Makefile', '.python-version', '.github/workflows/ci.yml']
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.14'
+      - run: make sync
+      - run: uv run --locked ruff check . && uv run --locked ruff format --check .
+      - run: uv run --locked mypy
+      - run: PYTHONPATH=src uv run --locked lint-imports --no-cache
+      - run: uv run --locked pytest -q
