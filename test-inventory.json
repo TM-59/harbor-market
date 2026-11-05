@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "repository": "TM-59/harbor-market",
+  "entrypoints": {
+    "test": "make test",
+    "check": "make check"
+  },
+  "kinds": {
+    "unit": {
+      "framework": "pytest",
+      "requirements": [
+        "REQ-HEALTH",
+        "REQ-CORE",
+        "REQ-CHECK"
+      ]
+    },
+    "integration": {
+      "reason": "Deferred until Django ORM and SQLite persistence in M3."
+    },
+    "e2e": {
+      "reason": "Deferred until the playable screen in M4."
+    },
+    "perf": {
+      "reason": "No gameplay or measurable performance contract in M1."
+    },
+    "mem": {
+      "reason": "No simulation or persistence workload in M1."
+    },
+    "visual": {
+      "reason": "No browser screen in M1."
+    },
+    "infra": {
+      "reason": "No deployed infrastructure."
+    },
+    "trace": {
+      "reason": "No event pipeline until M3."
+    }
+  }
+}
