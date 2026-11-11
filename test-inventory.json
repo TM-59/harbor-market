@@ -11,7 +11,10 @@
       "requirements": [
         "REQ-HEALTH",
         "REQ-CORE",
-        "REQ-CHECK"
+        "REQ-CHECK",
+        "REQ-VALUE",
+        "REQ-TRADE",
+        "REQ-DAY"
       ]
     },
     "integration": {

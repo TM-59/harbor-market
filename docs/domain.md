@@ -2,7 +2,7 @@
 
 Harbor Market is a single-player resource trading game: buy grain and salt,
 carry limited cargo across six market days and maximize settled coins.
-This is the M2 design contract; M1 does not implement gameplay.
+M2 implements this contract as a pure domain (`src/harbor_market/domain/model.py`).
 
 | Term | Meaning and planned model |
 | --- | --- |
@@ -17,7 +17,7 @@ This is the M2 design contract; M1 does not implement gameplay.
 | CargoValuation | Pure domain service calculating cargo value from the current quotes. |
 
 A session starts on day one with 20 coins and empty cargo. Day quotes are fixed
-domain data, identical for every new session; M2 will commit the six-day table.
+domain data, identical for every new session (the table is below).
 Buy and sell share the same quote that day. Several trades per day are allowed.
 Advancing from day six liquidates cargo at day-six quotes and settles the session.
 Settled sessions reject further actions. Invalid actions leave all state unchanged.
@@ -28,6 +28,21 @@ Example at a quote of three coins: buying four grain changes 20 coins/empty carg
 to eight coins/four grain. Selling two at four coins later gives 16 coins/two grain.
 Settlement at five coins then gives 26 coins/empty cargo. These are illustrative
 quotes, not the six-day price table. Buying nine units always exceeds capacity.
+
+## The six market days
+
+| Day | Grain | Salt |
+| --- | --- | --- |
+| 1 | 3 | 5 |
+| 2 | 4 | 4 |
+| 3 | 2 | 6 |
+| 4 | 5 | 3 |
+| 5 | 3 | 7 |
+| 6 | 6 | 5 |
+
+Prices are coins per unit. A session that never trades settles at 20 coins; the
+largest possible result is 118, found by dynamic programming in the tests and
+reached by one plan played through the aggregate.
 
 The **Trading Session** bounded context owns quotes, holdings, trades and settlement.
 Authentication, real finance, multiplayer auctions, shipping simulation and external
@@ -56,7 +71,7 @@ site packages disabled. Dynamic imports are prohibited in core code.
 ## Roadmap and sources
 
 1. M1: vocabulary, empty core packages, health route and verification.
-2. M2: values, aggregate, events, valuation and pure rule tests.
+2. M2 (done): values, aggregate, events, valuation and pure rule tests.
 3. M3: start/trade/advance/read use cases, ORM repository and restart/atomicity tests.
 4. M4: one browser screen, complete six-day run, restart and actual screenshot.
 

@@ -1,9 +1,24 @@
 # Harbor Market
 
 A single-player harbor trading game designed around coins, limited cargo and six
-market days. The current M1 establishes vocabulary, dependency boundaries and a
-Django health route. Trading rules, persistence and browser gameplay are not yet
-implemented. There is no playable screenshot to show at this stage.
+market days. M2 implements the trading rules as a pure domain: 20 starting coins,
+a hold of eight units, grain and salt at fixed daily quotes, and settlement after
+day six. Persistence and browser gameplay are not yet implemented. There is no
+playable screenshot to show at this stage.
+
+The rules can be tried from Python without Django:
+
+```sh
+PYTHONPATH=src python3 -c "
+from harbor_market.domain import Good, TradingSession
+session = TradingSession('demo')
+print(session.buy(Good.GRAIN, 6))
+print(session.advance())
+print(session.sell(Good.GRAIN, 6))
+"
+```
+
+Doing nothing settles at 20 coins; the best plan reaches 118.
 
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).
 
