@@ -20,6 +20,11 @@ print(session.sell(Good.GRAIN, 6))
 
 Doing nothing settles at 20 coins; the best plan reaches 118.
 
+**Theory handbook**: [docs/theory/](docs/theory/README.md) — 8 statements (the language, whole and bounded
+values, the market table, one trade, conservation of worth, settlement, why 118 is the most, the dependency
+rule), each with its rule, assumptions, derivation, code, tests and a figure. `make theory-figs` regenerates
+the figures and the measured values; `make theory-check` checks the coverage table.
+
 Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).
 
 ```sh

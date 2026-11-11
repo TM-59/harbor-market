@@ -29,6 +29,10 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
+[tool.ruff.lint.per-file-ignores]
+# each measured value carries a one-sentence description; SVG fragments are long strings
+"scripts/theory_figs.py" = ["E501"]
+
 [tool.importlinter]
 root_package = "harbor_market"
 include_external_packages = true
