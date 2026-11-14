@@ -1,10 +1,9 @@
 # Harbor Market
 
 A single-player harbor trading game designed around coins, limited cargo and six
-market days. M2 implements the trading rules as a pure domain: 20 starting coins,
-a hold of eight units, grain and salt at fixed daily quotes, and settlement after
-day six. Persistence and browser gameplay are not yet implemented. There is no
-playable screenshot to show at this stage.
+market days. M3 adds start, buy, sell, advance and read use cases backed by Django
+ORM and SQLite; the trading rules remain a pure domain. Browser gameplay is still
+planned, so there is no playable screenshot at this stage.
 
 The rules can be tried from Python without Django:
 
@@ -34,14 +33,19 @@ make serve
 ```
 
 Open `http://localhost:8000/health/` for `{"status":"ok"}`. The development
-entry generates an ephemeral signing key in memory; no credential is stored.
+entry applies local migrations and generates an ephemeral signing key in memory;
+no credential is stored. The database defaults to
+`test-results/harbor-market.sqlite3`; set `HARBOR_MARKET_DB_PATH` to choose another
+database file.
 This scaffold is for local use and is not deployment configuration.
 
-`make test` runs pytest. `make check` adds Ruff, mypy, Import Linter and Django
-system checks. Both save native JUnit and `test-results/summary.json` outside Git.
+`make test` runs unit tests. `make check` also runs ORM integration tests, Ruff,
+mypy, Import Linter, Django system checks and migration drift checks. Both save
+native JUnit and `test-results/summary.json` outside Git.
 There is no simulation benchmark or browser smoke target before gameplay exists.
-CI runs only the PR's lightweight checks; no push or scheduled test execution.
+CI runs the pull request checks and both test suites; there is no push or scheduled
+test execution.
 
 See [domain vocabulary and roadmap](docs/domain.md), [requirements](docs/requirements.md)
 and [test inventory](test-inventory.json). M2 implements the pure domain, M3 adds
-use cases and Django ORM/SQLite migrations, M4 adds the browser screen.
+use cases and Django ORM/SQLite migrations (this version), M4 adds the browser screen.

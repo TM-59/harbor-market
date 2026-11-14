@@ -14,11 +14,13 @@
         "REQ-CHECK",
         "REQ-VALUE",
         "REQ-TRADE",
-        "REQ-DAY"
+        "REQ-DAY",
+        "REQ-USECASE"
       ]
     },
     "integration": {
-      "reason": "Deferred until Django ORM and SQLite persistence in M3."
+      "framework": "pytest",
+      "requirements": ["REQ-PERSISTENCE", "REQ-REVISION", "REQ-ATOMIC"]
     },
     "e2e": {
       "reason": "Deferred until the playable screen in M4."
@@ -36,7 +38,7 @@
       "reason": "No deployed infrastructure."
     },
     "trace": {
-      "reason": "No event pipeline until M3."
+      "reason": "Ordered domain-event persistence is covered by REQ-PERSISTENCE integration tests."
     }
   }
 }

@@ -15,6 +15,7 @@ dev = ["pytest", "pytest-django", "ruff", "mypy", "django-stubs", "import-linter
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["integration: tests Django ORM persistence and transactions"]
 
 [tool.mypy]
 python_version = "3.14"

@@ -6,6 +6,8 @@ test:
 check:
 	uv run --locked python scripts/check.py check
 serve:
+	mkdir -p test-results
+	uv run --locked python manage.py migrate --noinput
 	uv run --locked python manage.py runserver localhost:8000 --noreload
 # Regenerates the drawn figures and the measured-values table of docs/theory (one command).
 theory-figs:

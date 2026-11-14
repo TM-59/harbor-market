@@ -3,6 +3,8 @@
 Harbor Market is a single-player resource trading game: buy grain and salt,
 carry limited cargo across six market days and maximize settled coins.
 M2 implements this contract as a pure domain (`src/harbor_market/domain/model.py`).
+M3 adds application use cases and a transactional Django ORM/SQLite repository;
+the persistence models are records, not domain aggregates.
 
 | Term | Meaning and planned model |
 | --- | --- |
@@ -70,12 +72,12 @@ site packages disabled. Dynamic imports are prohibited in core code.
 
 ## Roadmap and sources
 
-1. M1: vocabulary, empty core packages, health route and verification.
+1. M1: vocabulary, package boundaries, health route and verification.
 2. M2 (done): values, aggregate, events, valuation and pure rule tests.
-3. M3: start/trade/advance/read use cases, ORM repository and restart/atomicity tests.
+3. M3 (done): start/trade/advance/read use cases, ORM repository and restart/atomicity tests.
 4. M4: one browser screen, complete six-day run, restart and actual screenshot.
 
-WASM, database models, migrations and playable screens are deferred.
+WASM and playable screens are deferred.
 Architecture is a project design choice; Django does not mandate this DDD layout.
 Official references checked 2026-11-06:
 
