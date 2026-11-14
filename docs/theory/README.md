@@ -38,12 +38,12 @@ flowchart TD
 | S05 | A trade conserves worth; only a night changes it | [2](02-days-and-the-best-plan.md) | `figures/worth.svg` | `src/harbor_market/domain/model.py#def value`, `src/harbor_market/domain/model.py#TradingSession` | `scripts/theory_figs.py#worth-trade-drift`, `tests/test_domain.py#test_REQ_TRADE_several_trades_a_day_and_both_goods` |
 | S06 | Six days, then settlement at day-six prices | [2](02-days-and-the-best-plan.md) | mermaid | `src/harbor_market/domain/model.py#def advance`, `src/harbor_market/domain/model.py#DAYS`, `src/harbor_market/domain/model.py#STARTING_COINS`, `src/harbor_market/domain/model.py#DayAdvanced`, `src/harbor_market/domain/model.py#SessionSettled`, `src/harbor_market/domain/model.py#SessionClosed` | `tests/test_domain.py#test_REQ_DAY_six_days_then_settlement`, `tests/test_domain.py#test_REQ_DAY_settled_sessions_reject_every_action` |
 | S07 | The best plan reaches 118 coins | [2](02-days-and-the-best-plan.md) | `figures/plan.svg`, `figures/outcomes.svg` | `src/harbor_market/domain/model.py#def quotes` | `tests/test_domain.py#test_REQ_DAY_best_plan_reaches_the_computed_optimum_through_the_domain`, `scripts/theory_figs.py#search-best` |
-| S08 | Layers and the inward dependency rule | [2](02-days-and-the-best-plan.md) | mermaid | `pyproject.toml#Adapters point inward and remain independent` | `tests/test_scaffold.py#test_REQ_CORE_imports_without_frameworks` |
+| S08 | Layers and the inward dependency rule | [2](02-days-and-the-best-plan.md) | mermaid | `pyproject.toml#Adapters point inward and remain independent`, `src/harbor_market/application/ports.py`, `src/harbor_market/infrastructure/repository.py`, `src/harbor_market/composition/use_cases.py` | `tests/test_scaffold.py#test_REQ_CORE_imports_without_frameworks`, `tests/test_persistence.py#test_REQ_PERSISTENCE_session_and_events_survive_connection_reopen` |
 
 Tests named `scripts/theory_figs.py#…` are measurements recorded in [figures/values.md](figures/values.md) by `make theory-figs`, not assertions of `make check`.
 
 ## Reading the source against this table
 
-Reviewed for this handbook: all of `src/harbor_market/domain/model.py` (the eighteen names exported by `src/harbor_market/domain/__init__.py`), the two Import Linter contracts in `pyproject.toml`, and `tests/test_domain.py`. The application, infrastructure and presentation packages hold no rules yet (M3, M4).
+Reviewed for this handbook: all of `src/harbor_market/domain/model.py` (the eighteen names exported by `src/harbor_market/domain/__init__.py`), the two Import Linter contracts in `pyproject.toml`, the application port, ORM repository and composition wiring, and the domain, application and persistence tests. Presentation remains health-only; playable routes are M4.
 
 The program is unchanged by this handbook: it adds `scripts/theory_figs.py`, `scripts/theory_check.py`, two Makefile targets, one Ruff per-file setting and these pages.

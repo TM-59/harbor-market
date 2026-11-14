@@ -20,4 +20,6 @@ jobs:
       - run: uv run --locked ruff check . && uv run --locked ruff format --check .
       - run: uv run --locked mypy
       - run: PYTHONPATH=src uv run --locked lint-imports --no-cache
+      - run: uv run --locked python manage.py makemigrations --check --dry-run
+      - run: mkdir -p test-results
       - run: uv run --locked pytest -q

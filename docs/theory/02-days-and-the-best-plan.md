@@ -110,9 +110,9 @@ flowchart TD
     D -. "imports only the standard library" .-> STD["collections.abc, dataclasses, enum, types"]
 ```
 
-**Code.** The two Import Linter contracts in `pyproject.toml` (`Adapters point inward and remain independent`, `Core excludes Django and direct database access`); `src/harbor_market/domain/__init__.py` exports the eighteen names of S01.
+**Code.** The two Import Linter contracts in `pyproject.toml` (`Adapters point inward and remain independent`, `Core excludes Django and direct database access`); `src/harbor_market/application/ports.py`, `src/harbor_market/infrastructure/repository.py` and `src/harbor_market/composition/use_cases.py` implement and wire the persistence boundary; `src/harbor_market/domain/__init__.py` exports the eighteen names of S01.
 
-**Tests.** `make check` runs Import Linter (2 contracts kept); `test_REQ_CORE_imports_without_frameworks` in `tests/test_scaffold.py` imports the domain and the application in a fresh interpreter without the frameworks.
+**Tests.** `make check` runs Import Linter (2 contracts kept); `test_REQ_CORE_imports_without_frameworks` in `tests/test_scaffold.py` imports the domain and the application in a fresh interpreter without the frameworks; `tests/test_persistence.py` exercises SQLite through the composition root.
 
 ## References
 
