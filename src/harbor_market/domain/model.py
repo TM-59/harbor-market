@@ -81,7 +81,7 @@ class Cargo:
         return self.grain if good is Good.GRAIN else self.salt
 
     def changed(self, good: Good, units: int) -> Cargo:
-        """A new cargo with `units` more (or, when negative, fewer) of one good."""
+        """Return a new cargo with `units` more (or, when negative, fewer) of one good."""
         if good is Good.GRAIN:
             return Cargo(self.grain + units, self.salt)
         return Cargo(self.grain, self.salt + units)

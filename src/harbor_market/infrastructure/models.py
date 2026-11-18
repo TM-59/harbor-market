@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.db import models
 
 
@@ -13,6 +15,10 @@ class TradingSessionRecord(models.Model):
     class Meta:
         db_table = "harbor_market_session"
 
+    def __str__(self) -> str:
+        """Show the session identity, as the admin and the shell list records."""
+        return self.session_id
+
 
 class SessionEventRecord(models.Model):
     session: models.ForeignKey[TradingSessionRecord, TradingSessionRecord] = models.ForeignKey(
@@ -24,9 +30,13 @@ class SessionEventRecord(models.Model):
 
     class Meta:
         db_table = "harbor_market_session_event"
-        ordering = ["sequence"]
-        constraints = [
+        ordering: ClassVar[list[str]] = ["sequence"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(
                 fields=["session", "sequence"], name="harbor_market_unique_event_sequence"
             )
         ]
+
+    def __str__(self) -> str:
+        """Show the session and the position of the event in its history."""
+        return f"{self.session.session_id} #{self.sequence}"
