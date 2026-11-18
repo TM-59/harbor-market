@@ -1,4 +1,4 @@
-.PHONY: sync test check serve theory-figs theory-check
+.PHONY: sync test check serve theory-figs theory-check fmt lint typecheck check-style
 sync:
 	uv sync --locked --python 3.14
 test:
@@ -15,3 +15,13 @@ theory-figs:
 # Fails when a statement of docs/theory has no figure, a link is broken, or a referenced name is gone.
 theory-check:
 	uv run --locked python scripts/theory_check.py
+# Formatter, linter and type checker (versions pinned by uv.lock); no ignores.
+fmt:
+	uv run --locked ruff format .
+	uv run --locked ruff check --fix .
+lint:
+	uv run --locked ruff format --check .
+	uv run --locked ruff check .
+typecheck:
+	uv run --locked mypy
+check-style: lint typecheck

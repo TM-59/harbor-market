@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Regenerates the drawn figures and the measured-values table of docs/theory.
 
 Run with `make theory-figs`. Everything is computed by the domain itself
@@ -8,13 +9,10 @@ from __future__ import annotations
 
 import sys
 from collections import Counter, deque
-from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "src"))
-
-from harbor_market.domain import (  # noqa: E402
+from harbor_market.domain import (
     CAPACITY,
     DAYS,
     MARKET,
@@ -24,20 +22,25 @@ from harbor_market.domain import (  # noqa: E402
     Coins,
     DayAdvanced,
     Good,
-    InvalidTrade,
+    InvalidTradeError,
     Quote,
-    SessionClosed,
+    SessionClosedError,
     SessionSettled,
     Side,
     TradeExecuted,
     TradingSession,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+ROOT = Path(__file__).resolve().parent.parent
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs/theory/figures"
 ROWS: list[str] = []
 GRAIN, SALT = Good.GRAIN, Good.SALT
 COLOUR = {GRAIN: "#c8961e", SALT: "#1f77b4"}
 State = tuple[int, int, int, int]  # day, coins, grain, salt
+FEASIBLE_DAY, FEASIBLE_COINS = 3, 38  # the purchase grid is tried on this day with these coins
 
 
 def value(key: str, what: str, measured: float, theory: float) -> None:
@@ -47,6 +50,7 @@ def value(key: str, what: str, measured: float, theory: float) -> None:
 
 
 def svg(name: str, width: float, height: float, body: list[str]) -> None:
+    """Write one SVG file with a white background around the given elements."""
     head = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0f} {height:.0f}" '
         f'width="{width:.0f}" height="{height:.0f}" font-family="sans-serif" font-size="12">'
@@ -58,14 +62,17 @@ def svg(name: str, width: float, height: float, body: list[str]) -> None:
 
 
 def title(text: str) -> str:
+    """Return the bold title line of a figure."""
     return f'<text x="16" y="26" font-size="16" font-weight="bold" fill="#222">{text}</text>'
 
 
 def worth(session: TradingSession) -> int:
+    """Return coins plus the cargo valued at today's quotes."""
     return session.coins.amount + CargoValuation.value(session.cargo, session.quotes).amount
 
 
 def price(day: int, good: Good) -> int:
+    """Return the price of `good` on market day `day` (1 to 6)."""
     return MARKET[day - 1][good].price
 
 
@@ -84,25 +91,29 @@ def hold_figure() -> None:
         for slot in range(CAPACITY):
             fill = COLOUR[filled[slot]] if slot < len(filled) else "#f4f4f4"
             body.append(
-                f'<rect x="{30 + slot * 46}" y="{y}" width="40" height="40" fill="{fill}" stroke="#999"/>'
+                f'<rect x="{30 + slot * 46}" y="{y}" width="40" height="40" fill="{fill}" '
+                'stroke="#999"/>'
             )
             if slot < len(filled):
                 letter = "g" if filled[slot] is GRAIN else "s"
                 body.append(
-                    f'<text x="{50 + slot * 46}" y="{y + 25}" text-anchor="middle" fill="#fff">{letter}</text>'
+                    f'<text x="{50 + slot * 46}" y="{y + 25}" text-anchor="middle" '
+                    f'fill="#fff">{letter}</text>'
                 )
     y = 60 + 2 * 74
     body.append(
-        f'<rect x="{30 + CAPACITY * 46 + 14}" y="{y}" width="40" height="40" fill="none" stroke="#d62728" stroke-dasharray="5 4"/>'
+        f'<rect x="{30 + CAPACITY * 46 + 14}" y="{y}" width="40" height="40" fill="none" '
+        'stroke="#d62728" stroke-dasharray="5 4"/>'
     )
     body.append(
-        f'<text x="{50 + CAPACITY * 46 + 14}" y="{y + 25}" text-anchor="middle" fill="#d62728">9th</text>'
+        f'<text x="{50 + CAPACITY * 46 + 14}" y="{y + 25}" text-anchor="middle" '
+        'fill="#d62728">9th</text>'
     )
     svg("hold.svg", 520, 270, body)
 
 
 def prices_figure() -> None:
-    """The six-day price table as two lines, with the overnight changes written on them."""
+    """Draw the six-day price table as two lines, with the overnight changes written on them."""
     left, top, plot_w, plot_h, peak = 60, 50, 560, 220, 8
     body = [title("The market: price per unit of grain and salt on the six days")]
     body.append(
@@ -120,7 +131,8 @@ def prices_figure() -> None:
     for day in range(1, DAYS + 1):
         x, _ = at(day, 0)
         body.append(
-            f'<text x="{x:.1f}" y="{top + plot_h + 18}" text-anchor="middle" fill="#444">day {day}</text>'
+            f'<text x="{x:.1f}" y="{top + plot_h + 18}" text-anchor="middle" fill="#444">day '
+            f"{day}</text>"
         )
     for good in Good:
         points = [at(day, price(day, good)) for day in range(1, DAYS + 1)]
@@ -132,34 +144,41 @@ def prices_figure() -> None:
             body.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5" fill="{COLOUR[good]}"/>')
             shift = -10 if price(day, good) >= price(day, SALT if good is GRAIN else GRAIN) else 20
             body.append(
-                f'<text x="{x:.1f}" y="{y + shift:.1f}" text-anchor="middle" fill="{COLOUR[good]}">{price(day, good)}</text>'
+                f'<text x="{x:.1f}" y="{y + shift:.1f}" text-anchor="middle" '
+                f'fill="{COLOUR[good]}">{price(day, good)}</text>'
             )
     body.append(
         f'<text x="{left + 10}" y="{top + plot_h + 44}" fill="{COLOUR[GRAIN]}">grain</text>'
     )
     body.append(f'<text x="{left + 70}" y="{top + plot_h + 44}" fill="{COLOUR[SALT]}">salt</text>')
     body.append(
-        f'<text x="{left + 130}" y="{top + plot_h + 44}" fill="#444">coins per unit; buying and selling use the same price</text>'
+        f'<text x="{left + 130}" y="{top + plot_h + 44}" fill="#444">coins per unit; buying and '
+        "selling use the same price</text>"
     )
     svg("prices.svg", 660, 330, body)
 
 
+def try_purchase(grain: int, salt: int) -> tuple[str, TradingSession]:
+    """Buy `grain` then `salt` on the grid day; return the refusal message ("" if accepted)."""
+    session = TradingSession("grid", FEASIBLE_DAY, Coins(FEASIBLE_COINS))
+    try:
+        if grain:
+            session.buy(GRAIN, grain)
+        if salt:
+            session.buy(SALT, salt)
+    except InvalidTradeError as refusal:
+        return str(refusal), session
+    return "", session
+
+
 def feasible_figure() -> tuple[int, int, int]:
-    """Every purchase (grain, salt) tried on day three with 38 coins: accepted or refused."""
+    """Try every purchase (grain, salt) on day three with 38 coins: accepted or refused."""
     cell, left, top = 34, 70, 60
     body = [title("Day 3 with 38 coins: which purchases the session accepts")]
     accepted = short_of_coins = short_of_space = 0
-    for grain in range(0, CAPACITY + 2):
-        for salt in range(0, CAPACITY + 2):
-            session = TradingSession("grid", 3, Coins(38))
-            reason = ""
-            try:
-                if grain:
-                    session.buy(GRAIN, grain)
-                if salt:
-                    session.buy(SALT, salt)
-            except InvalidTrade as refusal:
-                reason = str(refusal)
+    for grain in range(CAPACITY + 2):
+        for salt in range(CAPACITY + 2):
+            reason, session = try_purchase(grain, salt)
             if not reason:
                 accepted += 1
                 fill = "#2ca02c"
@@ -171,18 +190,22 @@ def feasible_figure() -> tuple[int, int, int]:
                 fill = "#9467bd"
             x, y = left + grain * cell, top + (CAPACITY + 1 - salt) * cell
             body.append(
-                f'<rect x="{x}" y="{y}" width="{cell - 4}" height="{cell - 4}" fill="{fill}" opacity="0.85"/>'
+                f'<rect x="{x}" y="{y}" width="{cell - 4}" height="{cell - 4}" fill="{fill}" '
+                'opacity="0.85"/>'
             )
             if not reason:
                 body.append(
-                    f'<text x="{x + 15}" y="{y + 20}" text-anchor="middle" fill="#fff" font-size="11">{session.coins.amount}</text>'
+                    f'<text x="{x + 15}" y="{y + 20}" text-anchor="middle" fill="#fff" '
+                    f'font-size="11">{session.coins.amount}</text>'
                 )
-    for n in range(0, CAPACITY + 2):
+    for n in range(CAPACITY + 2):
         body.append(
-            f'<text x="{left + n * cell + 15}" y="{top + (CAPACITY + 2) * cell + 12}" text-anchor="middle" fill="#444">{n}</text>'
+            f'<text x="{left + n * cell + 15}" y="{top + (CAPACITY + 2) * cell + 12}" '
+            f'text-anchor="middle" fill="#444">{n}</text>'
         )
         body.append(
-            f'<text x="{left - 10}" y="{top + (CAPACITY + 1 - n) * cell + 20}" text-anchor="end" fill="#444">{n}</text>'
+            f'<text x="{left - 10}" y="{top + (CAPACITY + 1 - n) * cell + 20}" text-anchor="end" '
+            f'fill="#444">{n}</text>'
         )
     base = top + (CAPACITY + 2) * cell + 34
     body.append(f'<text x="{left}" y="{base}" fill="#444">grain bought (2 coins each) →</text>')
@@ -266,7 +289,8 @@ def worth_figure(steps: list[tuple[str, int, int, bool]]) -> None:
         if overnight:
             x0, _ = at(i - 1, 0)
             body.append(
-                f'<rect x="{x0:.1f}" y="{top}" width="{step:.1f}" height="{plot_h}" fill="#eef3fa"/>'
+                f'<rect x="{x0:.1f}" y="{top}" width="{step:.1f}" height="{plot_h}" '
+                'fill="#eef3fa"/>'
             )
     series = ([row[1] for row in steps], "#999999"), ([row[2] for row in steps], "#d62728")
     for amounts, colour in series:
@@ -278,16 +302,19 @@ def worth_figure(steps: list[tuple[str, int, int, bool]]) -> None:
         body.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="#d62728"/>')
         if overnight or i == 0:
             body.append(
-                f'<text x="{x:.1f}" y="{y - 9:.1f}" text-anchor="middle" fill="#d62728">{total}</text>'
+                f'<text x="{x:.1f}" y="{y - 9:.1f}" text-anchor="middle" '
+                f'fill="#d62728">{total}</text>'
             )
         body.append(
-            f'<text transform="translate({x + 4:.1f},{top + plot_h + 12}) rotate(55)" fill="#444" font-size="11">{label}</text>'
+            f'<text transform="translate({x + 4:.1f},{top + plot_h + 12}) rotate(55)" fill="#444" '
+            f'font-size="11">{label}</text>'
         )
     base = top + plot_h + 108
     body.append(f'<text x="{left}" y="{base}" fill="#d62728">worth</text>')
     body.append(f'<text x="{left + 50}" y="{base}" fill="#777">coins</text>')
     body.append(
-        f'<text x="{left + 100}" y="{base}" fill="#444">shaded = a night passes (prices change); elsewhere a trade, which leaves worth flat</text>'
+        f'<text x="{left + 100}" y="{base}" fill="#444">shaded = a night passes (prices change); '
+        "elsewhere a trade, which leaves worth flat</text>"
     )
     svg("worth.svg", 880, base + 16, body)
 
@@ -310,7 +337,7 @@ def reachable() -> tuple[int, Counter[int]]:
                 else:
                     good = GRAIN if action.endswith("grain") else SALT
                     (session.buy if action.startswith("buy") else session.sell)(good, 1)
-            except InvalidTrade:
+            except InvalidTradeError:
                 continue
             state: State = (
                 session.day,
@@ -355,19 +382,23 @@ def plan_figure(history: list[int], carried: list[str]) -> None:
         bar = total / peak * plot_h
         x = left + i * step + step * 0.15
         body.append(
-            f'<rect x="{x:.1f}" y="{top + plot_h - bar:.1f}" width="{step * 0.7:.1f}" height="{bar:.1f}" fill="#d62728" opacity="0.8"/>'
+            f'<rect x="{x:.1f}" y="{top + plot_h - bar:.1f}" width="{step * 0.7:.1f}" '
+            f'height="{bar:.1f}" fill="#d62728" opacity="0.8"/>'
         )
         middle = left + i * step + step / 2
         body.append(
-            f'<text x="{middle:.1f}" y="{top + plot_h - bar - 5:.1f}" text-anchor="middle" fill="#222">{total}</text>'
+            f'<text x="{middle:.1f}" y="{top + plot_h - bar - 5:.1f}" text-anchor="middle" '
+            f'fill="#222">{total}</text>'
         )
         body.append(
-            f'<text x="{middle:.1f}" y="{top + plot_h + 18}" text-anchor="middle" fill="#444">day {i + 1}</text>'
+            f'<text x="{middle:.1f}" y="{top + plot_h + 18}" text-anchor="middle" fill="#444">day '
+            f"{i + 1}</text>"
         )
         if i < len(carried):
             edge = left + (i + 1) * step
             body.append(
-                f'<text x="{edge:.1f}" y="{top + plot_h + 40}" text-anchor="middle" fill="#1f77b4">{carried[i]} →</text>'
+                f'<text x="{edge:.1f}" y="{top + plot_h + 40}" text-anchor="middle" '
+                f'fill="#1f77b4">{carried[i]} →</text>'
             )
     body.append(
         f'<rect x="{left}" y="{top}" width="{plot_w}" height="{plot_h}" fill="none" stroke="#888"/>'
@@ -388,30 +419,31 @@ def outcomes_figure(settled: Counter[int]) -> None:
             "#d62728" if coins == high else ("#2ca02c" if coins == STARTING_COINS else "#1f77b4")
         )
         body.append(
-            f'<rect x="{left + (coins - low) * width:.1f}" y="{top + plot_h - bar:.1f}" width="{max(width - 1, 1):.1f}" height="{bar:.1f}" fill="{colour}"/>'
+            f'<rect x="{left + (coins - low) * width:.1f}" y="{top + plot_h - bar:.1f}" '
+            f'width="{max(width - 1, 1):.1f}" height="{bar:.1f}" fill="{colour}"/>'
         )
     for coins in (low, STARTING_COINS, 40, 60, 80, 100, high):
         x = left + (coins - low + 0.5) * width
         body.append(
-            f'<text x="{x:.1f}" y="{top + plot_h + 18}" text-anchor="middle" fill="#444">{coins}</text>'
+            f'<text x="{x:.1f}" y="{top + plot_h + 18}" text-anchor="middle" '
+            f'fill="#444">{coins}</text>'
         )
     body.append(
         f'<rect x="{left}" y="{top}" width="{plot_w}" height="{plot_h}" fill="none" stroke="#888"/>'
     )
     body.append(
-        f'<text x="{left}" y="{top + plot_h + 42}" fill="#444">settled coins; green = never trading ({STARTING_COINS}), red = the best ({high}), leftmost = the worst ({low})</text>'
+        f'<text x="{left}" y="{top + plot_h + 42}" fill="#444">settled coins; green = never '
+        f"trading ({STARTING_COINS}), red = the best ({high}), leftmost = the worst ({low})</text>"
     )
     svg("outcomes.svg", 720, top + plot_h + 60, body)
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-
-    # values: whole and bounded
+def value_checks() -> None:
+    """Measure that coins, cargo and quotes refuse what is not whole and bounded."""
     refused = 0
     for bad in (-1, 1.5, "3", True):
         try:
-            Coins(bad)  # type: ignore[arg-type]
+            Coins(cast("int", bad))
         except ValueError:
             refused += 1
     value(
@@ -423,7 +455,7 @@ def main() -> None:
     refused = 0
     for grain, salt in ((9, 0), (5, 4), (-1, 0), (0, 1.0)):
         try:
-            Cargo(grain, salt)  # type: ignore[arg-type]
+            Cargo(grain, cast("int", salt))
         except ValueError:
             refused += 1
     value(
@@ -436,13 +468,15 @@ def main() -> None:
     refused = 0
     for bad in (0, -2, 2.5):
         try:
-            Quote(GRAIN, bad)  # type: ignore[arg-type]
+            Quote(GRAIN, cast("int", bad))
         except ValueError:
             refused += 1
     value("quote-rejected", "prices refused: zero, negative, fractional (theory 3)", refused, 3)
     hold_figure()
 
-    # the market
+
+def market_checks() -> None:
+    """Measure the market table and the valuation of cargo."""
     value("market-days", "market days", DAYS, 6)
     value(
         "market-low",
@@ -470,12 +504,14 @@ def main() -> None:
     )
     prices_figure()
 
-    # a trade
+
+def trade_checks() -> None:
+    """Measure one buy and one sell, the refusals, and the purchase grid."""
     session = TradingSession("trade")
     bought = session.buy(GRAIN, 4)
     value(
         "trade-buy-coins",
-        "coins after buying 4 grain at 3 from 20 (theory 20 − 12)",
+        "coins after buying 4 grain at 3 from 20 (theory 20 \N{MINUS SIGN} 12)",
         session.coins.amount,
         8,
     )
@@ -487,7 +523,7 @@ def main() -> None:
             isinstance(bought, TradeExecuted)
             and bought.coins == session.coins
             and bought.cargo == session.cargo
-            and bought.price == 3
+            and bought.price == price(1, GRAIN)
         ),
         1,
     )
@@ -511,7 +547,7 @@ def main() -> None:
     for attempt in trades:
         try:
             attempt()
-        except InvalidTrade:
+        except InvalidTradeError:
             refused += 1
     value(
         "trade-refused",
@@ -530,11 +566,12 @@ def main() -> None:
         1
         for g in range(CAPACITY + 2)
         for s in range(CAPACITY + 2)
-        if 2 * g + 6 * s <= 38 and g + s <= CAPACITY
+        if 2 * g + 6 * s <= FEASIBLE_COINS and g + s <= CAPACITY
     )
     value(
         "feasible-accepted",
-        "day 3 with 38 coins: purchases (grain, salt), 0 to 9 of each, that are accepted, of 100 (theory: 2g + 6s ≤ 38 and g + s ≤ 8)",
+        "day 3 with 38 coins: purchases (grain, salt), 0 to 9 of each, that are accepted, of 100 "
+        "(theory: 2g + 6s ≤ 38 and g + s ≤ 8)",
         accepted,
         fits,
     )
@@ -557,7 +594,9 @@ def main() -> None:
         short_of_space,
     )
 
-    # worth
+
+def worth_checks() -> None:
+    """Measure the best plan: worth moves only overnight."""
     steps, trade_drift, events = play_best()
     value(
         "worth-trade-drift",
@@ -575,13 +614,16 @@ def main() -> None:
     nights = [steps[i][2] - steps[i - 1][2] for i in range(1, len(steps)) if steps[i][3]]
     value(
         "worth-night-gain",
-        "sum of the six overnight changes of worth in the best plan, coins (theory 118 − 20)",
+        "sum of the six overnight changes of worth in the best plan, coins "
+        "(theory 118 \N{MINUS SIGN} 20)",
         sum(nights),
         98,
     )
     worth_figure(steps)
 
-    # days and settlement
+
+def day_checks() -> None:
+    """Measure the days, settlement and the refusals of a settled session."""
     idle = TradingSession("idle")
     days = [idle.day]
     while not idle.settled:
@@ -599,7 +641,7 @@ def main() -> None:
     for action in actions:
         try:
             action()
-        except SessionClosed:
+        except SessionClosedError:
             closed += 1
     value(
         "settled-refuses",
@@ -617,7 +659,9 @@ def main() -> None:
     )
     value("settle-empties", "units left in the hold after settlement", holder.cargo.total, 0)
 
-    # the whole game
+
+def search_checks() -> None:
+    """Measure every reachable play and the nightly rule."""
     states, settled = reachable()
     value(
         "search-states",
@@ -649,6 +693,9 @@ def main() -> None:
     plan_figure(history, carried)
     outcomes_figure(settled)
 
+
+def replay_check() -> None:
+    """Measure that the same actions give the same session."""
     replay = []
     for _ in range(2):
         again = TradingSession("replay")
@@ -664,11 +711,28 @@ def main() -> None:
         1,
     )
 
+
+def main() -> None:
+    """Write every figure and the measured-values table."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    value_checks()
+    market_checks()
+    trade_checks()
+    worth_checks()
+    day_checks()
+    search_checks()
+    replay_check()
     lines = [
         "# Measured values",
         "",
-        "Written by `make theory-figs` (scripts/theory_figs.py) from the domain itself. Do not edit by hand.",
-        "The last column is the relative error; where the theory column is 0 it is the absolute value.",
+        (
+            "Written by `make theory-figs` (scripts/theory_figs.py) from the domain itself. Do not "
+            "edit by hand."
+        ),
+        (
+            "The last column is the relative error; where the theory column is 0 it is the "
+            "absolute value."
+        ),
         "",
         "| id | what is measured | measured | theory | error |",
         "|---|---|---|---|---|",

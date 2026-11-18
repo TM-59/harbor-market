@@ -10,7 +10,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["pytest", "pytest-django", "ruff", "mypy", "django-stubs", "import-linter"]
+dev = [
+    "pytest",
+    "pytest-django",
+    "ruff",
+    "mypy",
+    "django-stubs",
+    "import-linter",
+    "defusedxml",
+    "types-defusedxml",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -28,11 +37,22 @@ target-version = "py314"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+select = ["ALL"]
+# Only rules the tool itself declares incompatible are left out; no code is excluded.
+ignore = [
+  # D203 and D211 are mutually exclusive (Ruff warns); keep D211 (no blank line before a class docstring).
+  "D203",
+  # D212 and D213 are mutually exclusive (Ruff warns); keep D212 (summary on the first line).
+  "D213",
+  # Conflicts with `ruff format` (Ruff documents it as unsafe to combine with the formatter).
+  "COM812",
+]
 
 [tool.ruff.lint.per-file-ignores]
-# each measured value carries a one-sentence description; SVG fragments are long strings
-"scripts/theory_figs.py" = ["E501"]
+# pytest checks are written as `assert` statements (PT009/PT027 forbid the unittest forms),
+# which S101 forbids: the two rule families ask for opposite things in tests, so tests keep
+# the pytest style. Production code keeps S101.
+"tests/**" = ["S101"]
 
 [tool.importlinter]
 root_package = "harbor_market"

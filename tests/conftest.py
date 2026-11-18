@@ -1,3 +1,6 @@
+# Copyright 2026 TM-59
+"""Configure Django with an ephemeral secret key before the tests import it."""
+
 import os
 import secrets
 from pathlib import Path

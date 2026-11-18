@@ -8,7 +8,7 @@
 - REQ-PERSISTENCE: SQLite restores session identity, day, coins, cargo, settlement
   state, revision and ordered domain-event history after connections close/reopen.
 - REQ-REVISION: revision starts at zero and increments once per saved action; a
-  stale snapshot cannot overwrite a committed action and raises `SessionConflict`.
+  stale snapshot cannot overwrite a committed action and raises `SessionConflictError`.
 - REQ-ATOMIC: session state and events commit together; an event write failure rolls
   back the session update.
 

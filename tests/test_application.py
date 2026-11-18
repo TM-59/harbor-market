@@ -1,3 +1,6 @@
+# Copyright 2026 TM-59
+"""Use cases against an in-memory repository port."""
+
 from copy import deepcopy
 
 import pytest
@@ -8,29 +11,35 @@ from harbor_market.application.use_cases import (
     BuyGoods,
     ReadSession,
     SellGoods,
-    SessionConflict,
-    SessionNotFound,
+    SessionConflictError,
+    SessionNotFoundError,
     StartSession,
 )
 from harbor_market.domain import (
+    DAYS,
     Coins,
     Event,
     Good,
-    InvalidTrade,
+    InvalidTradeError,
     SessionSettled,
     TradingSession,
 )
 
 
 class MemorySessionRepository:
+    """In-memory SessionRepository with revisions and an injectable rejected save."""
+
     def __init__(self) -> None:
+        """Start empty, accepting saves."""
         self.records: dict[str, SessionRecord] = {}
         self.reject_save = False
 
     def add(self, session: TradingSession) -> None:
+        """Store a copy of the session at revision 0."""
         self.records[session.session_id] = SessionRecord(deepcopy(session), (), 0)
 
     def get(self, session_id: str) -> SessionRecord | None:
+        """Return a copy of the stored record."""
         record = self.records.get(session_id)
         if record is None:
             return None
@@ -39,6 +48,7 @@ class MemorySessionRepository:
     def save(
         self, session: TradingSession, events: tuple[Event, ...], expected_revision: int
     ) -> bool:
+        """Save when the revision matches and saves are not rejected."""
         record = self.records[session.session_id]
         if self.reject_save or record.revision != expected_revision:
             return False
@@ -48,48 +58,53 @@ class MemorySessionRepository:
         return True
 
 
-def test_REQ_USECASE_start_trade_advance_and_read_keep_event_history() -> None:
+def test_req_usecase_start_trade_advance_and_read_keep_event_history() -> None:
+    """REQ-USECASE: every action goes through the port and is kept as an event."""
     repository: SessionRepository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     buy = BuyGoods(repository).execute(session.session_id, Good.GRAIN, 2)
     sell = SellGoods(repository).execute(session.session_id, Good.GRAIN, 1)
     advance = AdvanceSession(repository)
     events: list[Event] = [buy, sell]
-    for _ in range(5):
-        events.append(advance.execute(session.session_id))
+    events.extend(advance.execute(session.session_id) for _ in range(5))
     settled = advance.execute(session.session_id)
     events.append(settled)
 
     record = ReadSession(repository).execute(session.session_id)
     assert settled == SessionSettled("session-1", Coins(23))
-    assert record.session.settled and record.session.cargo.total == 0
+    assert record.session.settled
+    assert record.session.cargo.total == 0
     assert record.events == tuple(events)
-    assert record.revision == len(events) == 8
+    assert record.revision == len(events)
+    assert len(events) == 2 + DAYS  # buy and sell, five advances, the settlement
 
 
-def test_REQ_USECASE_unknown_and_invalid_actions_leave_session_unchanged() -> None:
+def test_req_usecase_unknown_and_invalid_actions_leave_session_unchanged() -> None:
+    """REQ-USECASE: unknown sessions and invalid trades change nothing."""
     repository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     before = ReadSession(repository).execute(session.session_id)
 
-    with pytest.raises(SessionNotFound):
+    with pytest.raises(SessionNotFoundError):
         ReadSession(repository).execute("missing")
-    with pytest.raises(SessionNotFound):
+    with pytest.raises(SessionNotFoundError):
         BuyGoods(repository).execute("missing", Good.GRAIN, 1)
-    with pytest.raises(InvalidTrade):
+    with pytest.raises(InvalidTradeError):
         BuyGoods(repository).execute(session.session_id, Good.GRAIN, 9)
 
     assert ReadSession(repository).execute(session.session_id) == before
 
 
-def test_REQ_USECASE_stale_revision_is_reported_as_a_conflict() -> None:
+def test_req_usecase_stale_revision_is_reported_as_a_conflict() -> None:
+    """REQ-USECASE: a rejected save is reported as a conflict and nothing is stored."""
     repository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     repository.reject_save = True
 
-    with pytest.raises(SessionConflict):
+    with pytest.raises(SessionConflictError):
         BuyGoods(repository).execute(session.session_id, Good.GRAIN, 1)
 
     record = ReadSession(repository).execute(session.session_id)
     assert record.session.coins == Coins(20)
-    assert record.events == () and record.revision == 0
+    assert record.events == ()
+    assert record.revision == 0

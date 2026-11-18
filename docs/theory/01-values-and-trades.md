@@ -68,9 +68,9 @@ classDiagram
     TradingSession ..> SessionSettled : emits
 ```
 
-**Code.** `src/harbor_market/domain/model.py`: `Coins`, `Good`, `Side`, `Cargo`, `Quote`, the mapping type `Quotes`, the table `MARKET` with `DAYS`, the constants `STARTING_COINS` and `CAPACITY`, `CargoValuation`, `TradingSession`, the events `TradeExecuted`, `DayAdvanced`, `SessionSettled` and their union `Event`, the exceptions `InvalidTrade` and `SessionClosed`.
+**Code.** `src/harbor_market/domain/model.py`: `Coins`, `Good`, `Side`, `Cargo`, `Quote`, the mapping type `Quotes`, the table `MARKET` with `DAYS`, the constants `STARTING_COINS` and `CAPACITY`, `CargoValuation`, `TradingSession`, the events `TradeExecuted`, `DayAdvanced`, `SessionSettled` and their union `Event`, the exceptions `InvalidTradeError` and `SessionClosedError`.
 
-**Tests.** `test_REQ_TRADE_exact_balances_of_the_documented_shape` in `tests/test_domain.py` builds these objects and compares the events by value.
+**Tests.** `test_req_trade_exact_balances_of_the_documented_shape` in `tests/test_domain.py` builds these objects and compares the events by value.
 
 ## S02 — Whole coins, and a hold of eight
 
@@ -88,7 +88,7 @@ A price is a whole number $p \ge 1$. A value outside these bounds cannot be cons
 
 **Code.** `Coins.__post_init__`, `Cargo.__post_init__`, `Cargo.total`, `Cargo.changed` and `Quote.__post_init__` in `src/harbor_market/domain/model.py`; the capacity is `CAPACITY`.
 
-**Tests.** `test_REQ_VALUE_coins_and_quotes_are_whole_and_bounded`, `test_REQ_VALUE_cargo_is_immutable_and_holds_eight`. Measured: `coins-rejected` = 4 of 4, `cargo-rejected` = 4 of 4, `quote-rejected` = 3 of 3, `cargo-capacity` = 8.
+**Tests.** `test_req_value_coins_and_quotes_are_whole_and_bounded`, `test_req_value_cargo_is_immutable_and_holds_eight`. Measured: `coins-rejected` = 4 of 4, `cargo-rejected` = 4 of 4, `quote-rejected` = 3 of 3, `cargo-capacity` = 8.
 
 ## S03 — The market is a fixed table
 
@@ -111,7 +111,7 @@ $$V_d(g, s) = g \, p_g(d) + s \, p_s(d) .$$
 
 **Code.** `MARKET`, `DAYS`, `Quote`, `Quotes` and `CargoValuation.value` in `src/harbor_market/domain/model.py`; a session reads its day's row through `TradingSession.quotes`.
 
-**Tests.** `test_REQ_VALUE_market_table_and_valuation` (the table is written out again by hand in the test). Measured: `market-days` = 6, `market-low` = 2, `market-high` = 7, `market-valuation` = 19 coins for three grain and two salt on day 1, `market-same-table` = 1.
+**Tests.** `test_req_value_market_table_and_valuation` (the table is written out again by hand in the test). Measured: `market-days` = 6, `market-low` = 2, `market-high` = 7, `market-valuation` = 19 coins for three grain and two salt on day 1, `market-same-table` = 1.
 
 ## S04 — One trade: exact, or refused with nothing changed
 
@@ -131,9 +131,9 @@ Every check happens before the first change, so a refused trade leaves the day, 
 ```mermaid
 flowchart TD
     A["buy(good, q) or sell(good, q)"] --> B{"session settled?"}
-    B -- yes --> X1["SessionClosed"]
+    B -- yes --> X1["SessionClosedError"]
     B -- no --> C{"good is grain or salt, q a whole number ≥ 1?"}
-    C -- no --> X2["InvalidTrade"]
+    C -- no --> X2["InvalidTradeError"]
     C -- yes --> D{"buying?"}
     D -- yes --> E{"price × q ≤ coins?"}
     E -- no --> X2
@@ -147,9 +147,9 @@ flowchart TD
     I --> J
 ```
 
-**Code.** `TradingSession.buy`, `TradingSession.sell` and the shared check `TradingSession._check` in `src/harbor_market/domain/model.py`; the exception `InvalidTrade`; the sides `Side`.
+**Code.** `TradingSession.buy`, `TradingSession.sell` and the shared check `TradingSession._check` in `src/harbor_market/domain/model.py`; the exception `InvalidTradeError`; the sides `Side`.
 
-**Tests.** `test_REQ_TRADE_exact_balances_of_the_documented_shape`, `test_REQ_TRADE_several_trades_a_day_and_both_goods`, `test_REQ_TRADE_quantities_are_positive_whole_numbers`, `test_REQ_TRADE_no_overspending_no_overloading_no_short_selling`. Measured: `trade-buy-coins` = 8 and `trade-buy-cargo` = 4 after buying four grain at 3; `trade-sell-coins` = 16 after selling two at 4; `trade-event` = 1; `trade-refused` = 5 of 5 with `trade-refused-unchanged` = 1. On the grid of the figure `feasible-accepted` = 41 of 100, equal to the count of lattice points with $2g + 6s \le 38$ and $g + s \le 8$; `feasible-refused` = 59, of which the session names coins for `feasible-coins` = 39 and cargo space for `feasible-space` = 20.
+**Tests.** `test_req_trade_exact_balances_of_the_documented_shape`, `test_req_trade_several_trades_a_day_and_both_goods`, `test_req_trade_quantities_are_positive_whole_numbers`, `test_req_trade_no_overspending_no_overloading_no_short_selling`. Measured: `trade-buy-coins` = 8 and `trade-buy-cargo` = 4 after buying four grain at 3; `trade-sell-coins` = 16 after selling two at 4; `trade-event` = 1; `trade-refused` = 5 of 5 with `trade-refused-unchanged` = 1. On the grid of the figure `feasible-accepted` = 41 of 100, equal to the count of lattice points with $2g + 6s \le 38$ and $g + s \le 8$; `feasible-refused` = 59, of which the session names coins for `feasible-coins` = 39 and cargo space for `feasible-space` = 20.
 
 ## References
 

@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Pure trading rules and events: standard library only."""
 
 from harbor_market.domain.model import (
@@ -11,10 +12,10 @@ from harbor_market.domain.model import (
     DayAdvanced,
     Event,
     Good,
-    InvalidTrade,
+    InvalidTradeError,
     Quote,
     Quotes,
-    SessionClosed,
+    SessionClosedError,
     SessionSettled,
     Side,
     TradeExecuted,
@@ -32,10 +33,10 @@ __all__ = [
     "DayAdvanced",
     "Event",
     "Good",
-    "InvalidTrade",
+    "InvalidTradeError",
     "Quote",
     "Quotes",
-    "SessionClosed",
+    "SessionClosedError",
     "SessionSettled",
     "Side",
     "TradeExecuted",
