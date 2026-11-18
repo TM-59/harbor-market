@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Wire the trading use cases to the Django repository."""
 
 from typing import TYPE_CHECKING

@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """The HTTP scaffold and the framework-free core."""
 
 import subprocess

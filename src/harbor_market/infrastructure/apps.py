@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Django application configuration of the persistence adapter."""
 
 from django.apps import AppConfig

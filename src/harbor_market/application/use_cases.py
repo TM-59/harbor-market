@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Framework-independent trading use cases."""
 
 from typing import TYPE_CHECKING

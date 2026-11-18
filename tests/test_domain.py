@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Pure rules of the Trading Session. No Django object is touched here."""
 
 import copy

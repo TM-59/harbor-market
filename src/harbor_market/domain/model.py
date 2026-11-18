@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Trading Session: coins, cargo and quotes, the session aggregate and its events.
 
 Standard library only. No real money, no fractions, no debt.

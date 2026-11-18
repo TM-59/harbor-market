@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Use cases against an in-memory repository port."""
 
 from copy import deepcopy

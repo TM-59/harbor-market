@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Checks docs/theory against the code. Run with `make theory-check`. Standard library only.
 
 Fails when a statement has no section or no figure, a link or figure is missing, a

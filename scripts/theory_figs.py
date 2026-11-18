@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Regenerates the drawn figures and the measured-values table of docs/theory.
 
 Run with `make theory-figs`. Everything is computed by the domain itself

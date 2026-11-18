@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Transport health only; no trading rules live here."""
 
 from django.http import HttpRequest, JsonResponse

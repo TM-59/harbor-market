@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Django persistence records; domain values are serialized by the repository."""
 
 from typing import ClassVar

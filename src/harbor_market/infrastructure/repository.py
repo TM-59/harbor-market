@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Django ORM adapter for the application session repository port."""
 
 from types import MappingProxyType

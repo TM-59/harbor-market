@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Local scaffold settings; credentials come from the process, never source code."""
 
 import os

@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Pure trading rules and events: standard library only."""
 
 from harbor_market.domain.model import (

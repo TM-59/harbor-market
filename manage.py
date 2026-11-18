@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Local development entry; generate an ephemeral key without storing credentials."""
 
 import os

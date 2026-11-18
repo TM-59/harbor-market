@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Persistence ports used by the application layer."""
 
 from dataclasses import dataclass

@@ -1,3 +1,4 @@
+# Copyright 2026 TM-59
 """Bounded local checks; keep native JUnit and record failures as well as passes."""
 
 import json
