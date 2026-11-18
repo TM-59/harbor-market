@@ -24,11 +24,11 @@ class Side(Enum):
     SELL = "sell"
 
 
-class SessionClosed(Exception):
+class SessionClosedError(Exception):
     """A settled session accepts no further action."""
 
 
-class InvalidTrade(ValueError):
+class InvalidTradeError(ValueError):
     """The quantity is not a positive whole number, or coins, capacity or cargo do not allow it."""
 
 
@@ -166,11 +166,11 @@ class TradingSession:
 
     def _check(self, good: Good, quantity: int) -> int:
         if self.settled:
-            raise SessionClosed("the session is settled")
+            raise SessionClosedError("the session is settled")
         if not isinstance(good, Good):
-            raise InvalidTrade("grain or salt is required")
+            raise InvalidTradeError("grain or salt is required")
         if type(quantity) is not int or quantity < 1:
-            raise InvalidTrade("a quantity is a positive whole number")
+            raise InvalidTradeError("a quantity is a positive whole number")
         return self.quotes[good].price
 
     def buy(self, good: Good, quantity: int) -> TradeExecuted:
@@ -178,9 +178,9 @@ class TradingSession:
         price = self._check(good, quantity)
         cost = price * quantity
         if cost > self.coins.amount:
-            raise InvalidTrade("not enough coins")
+            raise InvalidTradeError("not enough coins")
         if self.cargo.total + quantity > CAPACITY:
-            raise InvalidTrade("not enough cargo space")
+            raise InvalidTradeError("not enough cargo space")
         self.coins = Coins(self.coins.amount - cost)
         self.cargo = self.cargo.changed(good, quantity)
         return self._trade(Side.BUY, good, quantity, price)
@@ -189,7 +189,7 @@ class TradingSession:
         """Exchange cargo for coins at today's quote. Nothing changes when the trade is invalid."""
         price = self._check(good, quantity)
         if quantity > self.cargo.held(good):
-            raise InvalidTrade("not enough cargo of that good")
+            raise InvalidTradeError("not enough cargo of that good")
         self.coins = Coins(self.coins.amount + price * quantity)
         self.cargo = self.cargo.changed(good, -quantity)
         return self._trade(Side.SELL, good, quantity, price)
@@ -202,7 +202,7 @@ class TradingSession:
     def advance(self) -> DayAdvanced | SessionSettled:
         """Go to the next day; from day six, sell what is left at day-six quotes and settle."""
         if self.settled:
-            raise SessionClosed("the session is settled")
+            raise SessionClosedError("the session is settled")
         if self.day < DAYS:
             self.day += 1
             return DayAdvanced(self.session_id, self.day, self.quotes)

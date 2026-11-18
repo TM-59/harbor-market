@@ -15,9 +15,9 @@ from harbor_market.domain import (
     Coins,
     DayAdvanced,
     Good,
-    InvalidTrade,
+    InvalidTradeError,
     Quote,
-    SessionClosed,
+    SessionClosedError,
     SessionSettled,
     Side,
     TradeExecuted,
@@ -29,7 +29,7 @@ GRAIN, SALT = Good.GRAIN, Good.SALT
 PRICES = [(3, 5), (4, 4), (2, 6), (5, 3), (3, 7), (6, 5)]
 
 
-def test_REQ_VALUE_coins_and_quotes_are_whole_and_bounded() -> None:
+def test_req_value_coins_and_quotes_are_whole_and_bounded() -> None:
     assert Coins(0).amount == 0
     for bad in (-1, 1.5, "3", None, True):
         with pytest.raises(ValueError):
@@ -43,7 +43,7 @@ def test_REQ_VALUE_coins_and_quotes_are_whole_and_bounded() -> None:
         Coins(3).amount = 4  # type: ignore[misc]
 
 
-def test_REQ_VALUE_cargo_is_immutable_and_holds_eight() -> None:
+def test_req_value_cargo_is_immutable_and_holds_eight() -> None:
     cargo = Cargo(3, 5)
     assert (cargo.total, cargo.held(GRAIN), cargo.held(SALT)) == (8, 3, 5)
     assert cargo.changed(GRAIN, -2) == Cargo(1, 5) and cargo == Cargo(3, 5)
@@ -54,7 +54,7 @@ def test_REQ_VALUE_cargo_is_immutable_and_holds_eight() -> None:
         cargo.changed(SALT, 1)
 
 
-def test_REQ_VALUE_market_table_and_valuation() -> None:
+def test_req_value_market_table_and_valuation() -> None:
     assert DAYS == 6 and (STARTING_COINS, CAPACITY) == (20, 8)
     assert [(q[GRAIN].price, q[SALT].price) for q in MARKET] == PRICES
     assert CargoValuation.value(Cargo(2, 3), MARKET[0]) == Coins(2 * 3 + 3 * 5)
@@ -63,7 +63,7 @@ def test_REQ_VALUE_market_table_and_valuation() -> None:
         MARKET[0][GRAIN] = Quote(GRAIN, 1)  # type: ignore[index]
 
 
-def test_REQ_TRADE_exact_balances_of_the_documented_shape() -> None:
+def test_req_trade_exact_balances_of_the_documented_shape() -> None:
     session = TradingSession("s1")
     assert (session.day, session.coins, session.cargo, session.settled) == (
         1,
@@ -79,7 +79,7 @@ def test_REQ_TRADE_exact_balances_of_the_documented_shape() -> None:
     assert (session.coins, session.cargo) == (Coins(16), Cargo(2, 0))
 
 
-def test_REQ_TRADE_several_trades_a_day_and_both_goods() -> None:
+def test_req_trade_several_trades_a_day_and_both_goods() -> None:
     session = TradingSession("s2")
     session.buy(GRAIN, 2)
     session.buy(SALT, 2)
@@ -93,43 +93,43 @@ def test_REQ_TRADE_several_trades_a_day_and_both_goods() -> None:
 
 
 @pytest.mark.parametrize("quantity", [0, -1, 1.5, "2", None, True])
-def test_REQ_TRADE_quantities_are_positive_whole_numbers(quantity: object) -> None:
+def test_req_trade_quantities_are_positive_whole_numbers(quantity: object) -> None:
     session = TradingSession("s3")
     session.buy(GRAIN, 1)
     before = copy.deepcopy(session)
     for action in (session.buy, session.sell):
-        with pytest.raises(InvalidTrade):
+        with pytest.raises(InvalidTradeError):
             action(GRAIN, quantity)  # type: ignore[arg-type]
     assert session == before
 
 
-def test_REQ_TRADE_no_overspending_no_overloading_no_short_selling() -> None:
+def test_req_trade_no_overspending_no_overloading_no_short_selling() -> None:
     session = TradingSession("s4")
     before = copy.deepcopy(session)
-    with pytest.raises(InvalidTrade, match="coins"):
+    with pytest.raises(InvalidTradeError, match="coins"):
         session.buy(SALT, 5)  # 25 coins needed, 20 held
-    with pytest.raises(InvalidTrade, match="coins"):
+    with pytest.raises(InvalidTradeError, match="coins"):
         session.buy(GRAIN, 9)  # nine units: over the coins, and always over capacity
-    with pytest.raises(InvalidTrade, match="cargo"):
+    with pytest.raises(InvalidTradeError, match="cargo"):
         session.sell(GRAIN, 1)  # nothing held
-    with pytest.raises(InvalidTrade):
+    with pytest.raises(InvalidTradeError):
         session.buy("grain", 1)  # type: ignore[arg-type]
     assert session == before
     session.buy(GRAIN, 6)  # 18 coins, six slots
-    with pytest.raises(InvalidTrade, match="coins"):
+    with pytest.raises(InvalidTradeError, match="coins"):
         session.buy(GRAIN, 1)  # two coins left
     rich = TradingSession("s5", coins=Coins(100))
     rich.buy(GRAIN, 8)
     snapshot = copy.deepcopy(rich)
-    with pytest.raises(InvalidTrade, match="space"):
+    with pytest.raises(InvalidTradeError, match="space"):
         rich.buy(SALT, 1)  # coins allow it, the hold does not
-    with pytest.raises(InvalidTrade, match="cargo"):
+    with pytest.raises(InvalidTradeError, match="cargo"):
         rich.sell(GRAIN, 9)
     assert rich == snapshot
     assert rich.sell(GRAIN, 8).cargo == Cargo()  # exactly what is held can be sold
 
 
-def test_REQ_DAY_six_days_then_settlement() -> None:
+def test_req_day_six_days_then_settlement() -> None:
     session = TradingSession("s6")
     events = [session.advance() for _ in range(5)]
     assert [event.day for event in events if isinstance(event, DayAdvanced)] == [2, 3, 4, 5, 6]
@@ -142,7 +142,7 @@ def test_REQ_DAY_six_days_then_settlement() -> None:
     assert (session.settled, session.cargo, session.day) == (True, Cargo(), 6)
 
 
-def test_REQ_DAY_final_liquidation_uses_day_six_quotes() -> None:
+def test_req_day_final_liquidation_uses_day_six_quotes() -> None:
     session = TradingSession("s7", day=5, coins=Coins(4), cargo=Cargo(2, 3))
     session.advance()
     settled = session.advance()
@@ -150,17 +150,17 @@ def test_REQ_DAY_final_liquidation_uses_day_six_quotes() -> None:
     assert session.coins == Coins(31) and session.cargo == Cargo()
 
 
-def test_REQ_DAY_settled_sessions_reject_every_action() -> None:
+def test_req_day_settled_sessions_reject_every_action() -> None:
     session = TradingSession("s8", day=6)
     session.advance()
     before = copy.deepcopy(session)
     for action in (lambda: session.buy(GRAIN, 1), lambda: session.sell(GRAIN, 1), session.advance):
-        with pytest.raises(SessionClosed):
+        with pytest.raises(SessionClosedError):
             action()
     assert session == before
 
 
-def test_REQ_DAY_session_creation_is_validated() -> None:
+def test_req_day_session_creation_is_validated() -> None:
     with pytest.raises(ValueError):
         TradingSession("")
     for day in (0, 7, 1.0, "1"):
@@ -198,7 +198,7 @@ def best_possible() -> int:
     return best(0, STARTING_COINS)
 
 
-def test_REQ_DAY_best_plan_reaches_the_computed_optimum_through_the_domain() -> None:
+def test_req_day_best_plan_reaches_the_computed_optimum_through_the_domain() -> None:
     assert best_possible() == 118
     # one plan that reaches it, played through the aggregate
     session = TradingSession("best")
@@ -224,7 +224,7 @@ def test_REQ_DAY_best_plan_reaches_the_computed_optimum_through_the_domain() -> 
     assert idle.advance() == SessionSettled("idle", Coins(20))  # doing nothing keeps the start
 
 
-def test_REQ_DAY_same_actions_give_the_same_session() -> None:
+def test_req_day_same_actions_give_the_same_session() -> None:
     runs = []
     for _ in range(2):
         session = TradingSession("replay")

@@ -16,24 +16,24 @@ if TYPE_CHECKING:
     from harbor_market.application.ports import SessionRecord, SessionRepository
 
 
-class SessionNotFound(LookupError):
+class SessionNotFoundError(LookupError):
     """No trading session exists with the requested identity."""
 
 
-class SessionConflict(RuntimeError):
+class SessionConflictError(RuntimeError):
     """The session changed after it was read."""
 
 
 def _load(repository: SessionRepository, session_id: str) -> SessionRecord:
     record = repository.get(session_id)
     if record is None:
-        raise SessionNotFound(session_id)
+        raise SessionNotFoundError(session_id)
     return record
 
 
 def _save(repository: SessionRepository, record: SessionRecord, events: tuple[Event, ...]) -> None:
     if not repository.save(record.session, events, record.revision):
-        raise SessionConflict(record.session.session_id)
+        raise SessionConflictError(record.session.session_id)
 
 
 class StartSession:

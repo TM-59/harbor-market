@@ -1,15 +1,22 @@
 import pytest
 from django.db import IntegrityError, connection, connections
 
-from harbor_market.application.use_cases import SessionNotFound
+from harbor_market.application.use_cases import SessionNotFoundError
 from harbor_market.composition.use_cases import build_use_cases
-from harbor_market.domain import Coins, Event, Good, InvalidTrade, SessionSettled, TradingSession
+from harbor_market.domain import (
+    Coins,
+    Event,
+    Good,
+    InvalidTradeError,
+    SessionSettled,
+    TradingSession,
+)
 from harbor_market.infrastructure.repository import DjangoSessionRepository
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 
 
-def test_REQ_PERSISTENCE_session_and_events_survive_connection_reopen() -> None:
+def test_req_persistence_session_and_events_survive_connection_reopen() -> None:
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     events: list[Event] = [use_cases.buy.execute(session.session_id, Good.GRAIN, 2)]
@@ -30,7 +37,7 @@ def test_REQ_PERSISTENCE_session_and_events_survive_connection_reopen() -> None:
     assert reopened.revision == len(events) == 7
 
 
-def test_REQ_REVISION_stale_snapshot_cannot_overwrite_a_committed_trade() -> None:
+def test_req_revision_stale_snapshot_cannot_overwrite_a_committed_trade() -> None:
     repository = DjangoSessionRepository()
     session = TradingSession("session-stale")
     repository.add(session)
@@ -49,7 +56,7 @@ def test_REQ_REVISION_stale_snapshot_cannot_overwrite_a_committed_trade() -> Non
     assert stored.revision == 1 and stored.events == (first_event,)
 
 
-def test_REQ_ATOMIC_failed_event_insert_rolls_back_session_update() -> None:
+def test_req_atomic_failed_event_insert_rolls_back_session_update() -> None:
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     with connection.cursor() as cursor:
@@ -68,16 +75,16 @@ def test_REQ_ATOMIC_failed_event_insert_rolls_back_session_update() -> None:
     assert record.events == () and record.revision == 0
 
 
-def test_REQ_PERSISTENCE_unknown_and_invalid_actions_are_no_ops() -> None:
+def test_req_persistence_unknown_and_invalid_actions_are_no_ops() -> None:
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     before = use_cases.read.execute(session.session_id)
 
-    with pytest.raises(SessionNotFound):
+    with pytest.raises(SessionNotFoundError):
         use_cases.read.execute("missing")
-    with pytest.raises(SessionNotFound):
+    with pytest.raises(SessionNotFoundError):
         use_cases.sell.execute("missing", Good.GRAIN, 1)
-    with pytest.raises(InvalidTrade):
+    with pytest.raises(InvalidTradeError):
         use_cases.buy.execute(session.session_id, Good.GRAIN, 9)
 
     assert use_cases.read.execute(session.session_id) == before

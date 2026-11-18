@@ -24,7 +24,7 @@ So coins are won or lost only by what is in the hold overnight.
 
 **Code.** `TradingSession.buy` and `TradingSession.sell` (the two changes are equal and opposite), `TradingSession.advance` (the day changes, nothing else) and `CargoValuation.value` in `src/harbor_market/domain/model.py`.
 
-**Tests.** `test_REQ_TRADE_exact_balances_of_the_documented_shape`, `test_REQ_DAY_best_plan_reaches_the_computed_optimum_through_the_domain`. Measured over the best plan played through the aggregate: `worth-trade-drift` = 0 coins across its 9 trades, `worth-night-gain` = 98 coins over its nights and settlement, `worth-events` = 15, `worth-final` = 118.
+**Tests.** `test_req_trade_exact_balances_of_the_documented_shape`, `test_req_day_best_plan_reaches_the_computed_optimum_through_the_domain`. Measured over the best plan played through the aggregate: `worth-trade-drift` = 0 coins across its 9 trades, `worth-night-gain` = 98 coins over its nights and settlement, `worth-events` = 15, `worth-final` = 118.
 
 ## S06 — Six days, then settlement
 
@@ -49,15 +49,15 @@ stateDiagram-v2
     Day6 --> Settled: advance — cargo sold at day-six prices (SessionSettled)
     Day1 --> Day1: buy or sell (TradeExecuted), or refused with nothing changed
     Day6 --> Day6: buy or sell (TradeExecuted), or refused with nothing changed
-    Settled --> Settled: any action → SessionClosed
+    Settled --> Settled: any action → SessionClosedError
     Settled --> [*]
 ```
 
 (Days 2 to 5 accept trades in the same way as days 1 and 6.)
 
-**Code.** `TradingSession.advance`, `TradingSession.__post_init__` (the day lies between one and six), the constants `STARTING_COINS` and `DAYS`, the events `DayAdvanced` and `SessionSettled`, the exception `SessionClosed` in `src/harbor_market/domain/model.py`.
+**Code.** `TradingSession.advance`, `TradingSession.__post_init__` (the day lies between one and six), the constants `STARTING_COINS` and `DAYS`, the events `DayAdvanced` and `SessionSettled`, the exception `SessionClosedError` in `src/harbor_market/domain/model.py`.
 
-**Tests.** `test_REQ_DAY_six_days_then_settlement`, `test_REQ_DAY_final_liquidation_uses_day_six_quotes`, `test_REQ_DAY_settled_sessions_reject_every_action`, `test_REQ_DAY_session_creation_is_validated`, `test_REQ_DAY_same_actions_give_the_same_session`. Measured: `days-sequence` = 6, `idle-settles` = 20, `settle-liquidation` = 31 coins from 4 coins, two grain and three salt, `settle-empties` = 0, `settled-refuses` = 3 of 3, `replay-identical` = 1.
+**Tests.** `test_req_day_six_days_then_settlement`, `test_req_day_final_liquidation_uses_day_six_quotes`, `test_req_day_settled_sessions_reject_every_action`, `test_req_day_session_creation_is_validated`, `test_req_day_same_actions_give_the_same_session`. Measured: `days-sequence` = 6, `idle-settles` = 20, `settle-liquidation` = 31 coins from 4 coins, two grain and three salt, `settle-empties` = 0, `settled-refuses` = 3 of 3, `replay-identical` = 1.
 
 ## S07 — The best plan reaches 118 coins
 
@@ -85,7 +85,7 @@ A larger $W$ allows every cargo a smaller one allows, so $B_d$ never decreases i
 
 **Code.** There is no solver in the game: `TradingSession` only applies the rules. The numbers come from playing through `TradingSession.buy`, `TradingSession.sell` and `TradingSession.advance`.
 
-**Tests.** `test_REQ_DAY_best_plan_reaches_the_computed_optimum_through_the_domain` computes $B_1(20) = 118$ by the recursion, written independently of the domain, and plays one plan that reaches it. Measured by a second, exhaustive method — every state reachable by one-unit trades, explored through the aggregate: `search-states` = 10011, `search-best` = 118, `search-worst` = 3, `search-distinct` = 116 different settlements; the nightly rule gives `greedy-final` = 118 and `greedy-matches-search` = 1.
+**Tests.** `test_req_day_best_plan_reaches_the_computed_optimum_through_the_domain` computes $B_1(20) = 118$ by the recursion, written independently of the domain, and plays one plan that reaches it. Measured by a second, exhaustive method — every state reachable by one-unit trades, explored through the aggregate: `search-states` = 10011, `search-best` = 118, `search-worst` = 3, `search-distinct` = 116 different settlements; the nightly rule gives `greedy-final` = 118 and `greedy-matches-search` = 1.
 
 ## S08 — The rules do not know about the web
 
@@ -112,7 +112,7 @@ flowchart TD
 
 **Code.** The two Import Linter contracts in `pyproject.toml` (`Adapters point inward and remain independent`, `Core excludes Django and direct database access`); `src/harbor_market/application/ports.py`, `src/harbor_market/infrastructure/repository.py` and `src/harbor_market/composition/use_cases.py` implement and wire the persistence boundary; `src/harbor_market/domain/__init__.py` exports the eighteen names of S01.
 
-**Tests.** `make check` runs Import Linter (2 contracts kept); `test_REQ_CORE_imports_without_frameworks` in `tests/test_scaffold.py` imports the domain and the application in a fresh interpreter without the frameworks; `tests/test_persistence.py` exercises SQLite through the composition root.
+**Tests.** `make check` runs Import Linter (2 contracts kept); `test_req_core_imports_without_frameworks` in `tests/test_scaffold.py` imports the domain and the application in a fresh interpreter without the frameworks; `tests/test_persistence.py` exercises SQLite through the composition root.
 
 ## References
 

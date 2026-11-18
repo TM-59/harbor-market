@@ -8,15 +8,15 @@ from harbor_market.application.use_cases import (
     BuyGoods,
     ReadSession,
     SellGoods,
-    SessionConflict,
-    SessionNotFound,
+    SessionConflictError,
+    SessionNotFoundError,
     StartSession,
 )
 from harbor_market.domain import (
     Coins,
     Event,
     Good,
-    InvalidTrade,
+    InvalidTradeError,
     SessionSettled,
     TradingSession,
 )
@@ -48,7 +48,7 @@ class MemorySessionRepository:
         return True
 
 
-def test_REQ_USECASE_start_trade_advance_and_read_keep_event_history() -> None:
+def test_req_usecase_start_trade_advance_and_read_keep_event_history() -> None:
     repository: SessionRepository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     buy = BuyGoods(repository).execute(session.session_id, Good.GRAIN, 2)
@@ -67,27 +67,27 @@ def test_REQ_USECASE_start_trade_advance_and_read_keep_event_history() -> None:
     assert record.revision == len(events) == 8
 
 
-def test_REQ_USECASE_unknown_and_invalid_actions_leave_session_unchanged() -> None:
+def test_req_usecase_unknown_and_invalid_actions_leave_session_unchanged() -> None:
     repository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     before = ReadSession(repository).execute(session.session_id)
 
-    with pytest.raises(SessionNotFound):
+    with pytest.raises(SessionNotFoundError):
         ReadSession(repository).execute("missing")
-    with pytest.raises(SessionNotFound):
+    with pytest.raises(SessionNotFoundError):
         BuyGoods(repository).execute("missing", Good.GRAIN, 1)
-    with pytest.raises(InvalidTrade):
+    with pytest.raises(InvalidTradeError):
         BuyGoods(repository).execute(session.session_id, Good.GRAIN, 9)
 
     assert ReadSession(repository).execute(session.session_id) == before
 
 
-def test_REQ_USECASE_stale_revision_is_reported_as_a_conflict() -> None:
+def test_req_usecase_stale_revision_is_reported_as_a_conflict() -> None:
     repository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     repository.reject_save = True
 
-    with pytest.raises(SessionConflict):
+    with pytest.raises(SessionConflictError):
         BuyGoods(repository).execute(session.session_id, Good.GRAIN, 1)
 
     record = ReadSession(repository).execute(session.session_id)

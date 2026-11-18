@@ -25,9 +25,9 @@ from harbor_market.domain import (  # noqa: E402
     Coins,
     DayAdvanced,
     Good,
-    InvalidTrade,
+    InvalidTradeError,
     Quote,
-    SessionClosed,
+    SessionClosedError,
     SessionSettled,
     Side,
     TradeExecuted,
@@ -162,7 +162,7 @@ def feasible_figure() -> tuple[int, int, int]:
                     session.buy(GRAIN, grain)
                 if salt:
                     session.buy(SALT, salt)
-            except InvalidTrade as refusal:
+            except InvalidTradeError as refusal:
                 reason = str(refusal)
             if not reason:
                 accepted += 1
@@ -314,7 +314,7 @@ def reachable() -> tuple[int, Counter[int]]:
                 else:
                     good = GRAIN if action.endswith("grain") else SALT
                     (session.buy if action.startswith("buy") else session.sell)(good, 1)
-            except InvalidTrade:
+            except InvalidTradeError:
                 continue
             state: State = (
                 session.day,
@@ -515,7 +515,7 @@ def main() -> None:
     for attempt in trades:
         try:
             attempt()
-        except InvalidTrade:
+        except InvalidTradeError:
             refused += 1
     value(
         "trade-refused",
@@ -603,7 +603,7 @@ def main() -> None:
     for action in actions:
         try:
             action()
-        except SessionClosed:
+        except SessionClosedError:
             closed += 1
     value(
         "settled-refuses",
