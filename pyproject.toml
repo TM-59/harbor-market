@@ -10,7 +10,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["pytest", "pytest-django", "ruff", "mypy", "django-stubs", "import-linter"]
+dev = [
+    "pytest",
+    "pytest-django",
+    "ruff",
+    "mypy",
+    "django-stubs",
+    "import-linter",
+    "defusedxml",
+    "types-defusedxml",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
