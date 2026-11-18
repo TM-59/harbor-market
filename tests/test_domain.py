@@ -40,6 +40,7 @@ BEST_SETTLEMENT = 118  # computed by best_possible() below, independently of the
 
 
 def test_req_value_coins_and_quotes_are_whole_and_bounded() -> None:
+    """REQ-VALUE: coins and prices are whole, bounded and frozen."""
     assert Coins(0).amount == 0
     for bad in (-1, 1.5, "3", None, True):
         with pytest.raises(ValueError, match=COINS_NOT_WHOLE):
@@ -55,6 +56,7 @@ def test_req_value_coins_and_quotes_are_whole_and_bounded() -> None:
 
 
 def test_req_value_cargo_is_immutable_and_holds_eight() -> None:
+    """REQ-VALUE: cargo is frozen, whole and holds at most eight units."""
     cargo = Cargo(3, 5)
     assert (cargo.total, cargo.held(GRAIN), cargo.held(SALT)) == (8, 3, 5)
     assert cargo.changed(GRAIN, -2) == Cargo(1, 5)
@@ -70,6 +72,7 @@ def test_req_value_cargo_is_immutable_and_holds_eight() -> None:
 
 
 def test_req_value_market_table_and_valuation() -> None:
+    """REQ-VALUE: the six-day table is fixed, read-only, and values cargo."""
     assert (DAYS, STARTING_COINS, CAPACITY) == (6, 20, 8)
     assert [(q[GRAIN].price, q[SALT].price) for q in MARKET] == PRICES
     assert CargoValuation.value(Cargo(2, 3), MARKET[0]) == Coins(2 * 3 + 3 * 5)
@@ -79,6 +82,7 @@ def test_req_value_market_table_and_valuation() -> None:
 
 
 def test_req_trade_exact_balances_of_the_documented_shape() -> None:
+    """REQ-TRADE: buying and selling give the documented balances."""
     session = TradingSession("s1")
     assert (session.day, session.coins, session.cargo, session.settled) == (
         1,
@@ -95,6 +99,7 @@ def test_req_trade_exact_balances_of_the_documented_shape() -> None:
 
 
 def test_req_trade_several_trades_a_day_and_both_goods() -> None:
+    """REQ-TRADE: several trades a day in both goods are allowed."""
     session = TradingSession("s2")
     session.buy(GRAIN, 2)
     session.buy(SALT, 2)
@@ -109,6 +114,7 @@ def test_req_trade_several_trades_a_day_and_both_goods() -> None:
 
 @pytest.mark.parametrize("quantity", [0, -1, 1.5, "2", None, True])
 def test_req_trade_quantities_are_positive_whole_numbers(quantity: object) -> None:
+    """REQ-TRADE: quantities other than positive whole numbers are refused."""
     session = TradingSession("s3")
     session.buy(GRAIN, 1)
     before = copy.deepcopy(session)
@@ -119,6 +125,7 @@ def test_req_trade_quantities_are_positive_whole_numbers(quantity: object) -> No
 
 
 def test_req_trade_no_overspending_no_overloading_no_short_selling() -> None:
+    """REQ-TRADE: coins, hold space and cargo held limit every trade."""
     session = TradingSession("s4")
     before = copy.deepcopy(session)
     with pytest.raises(InvalidTradeError, match="coins"):
@@ -145,6 +152,7 @@ def test_req_trade_no_overspending_no_overloading_no_short_selling() -> None:
 
 
 def test_req_day_six_days_then_settlement() -> None:
+    """REQ-DAY: six days, then the cargo is sold and the session settles."""
     session = TradingSession("s6")
     events = [session.advance() for _ in range(5)]
     assert [event.day for event in events if isinstance(event, DayAdvanced)] == [2, 3, 4, 5, 6]
@@ -159,6 +167,7 @@ def test_req_day_six_days_then_settlement() -> None:
 
 
 def test_req_day_final_liquidation_uses_day_six_quotes() -> None:
+    """REQ-DAY: settlement sells the cargo at day-six quotes."""
     session = TradingSession("s7", day=5, coins=Coins(4), cargo=Cargo(2, 3))
     session.advance()
     settled = session.advance()
@@ -168,6 +177,7 @@ def test_req_day_final_liquidation_uses_day_six_quotes() -> None:
 
 
 def test_req_day_settled_sessions_reject_every_action() -> None:
+    """REQ-DAY: a settled session refuses every action and stays unchanged."""
     session = TradingSession("s8", day=6)
     session.advance()
     before = copy.deepcopy(session)
@@ -178,6 +188,7 @@ def test_req_day_settled_sessions_reject_every_action() -> None:
 
 
 def test_req_day_session_creation_is_validated() -> None:
+    """REQ-DAY: identity, day and holdings are validated; sessions share no state."""
     with pytest.raises(ValueError, match=SESSION_WITHOUT_IDENTITY):
         TradingSession("")
     for day in (0, 7, 1.0, "1"):
@@ -217,6 +228,7 @@ def best_possible() -> int:
 
 
 def test_req_day_best_plan_reaches_the_computed_optimum_through_the_domain() -> None:
+    """REQ-DAY: a plan through the aggregate reaches the independently computed optimum."""
     assert best_possible() == BEST_SETTLEMENT
     # one plan that reaches it, played through the aggregate
     session = TradingSession("best")
@@ -243,6 +255,7 @@ def test_req_day_best_plan_reaches_the_computed_optimum_through_the_domain() -> 
 
 
 def test_req_day_same_actions_give_the_same_session() -> None:
+    """REQ-DAY: the same actions always give the same session."""
     runs = []
     for _ in range(2):
         session = TradingSession("replay")

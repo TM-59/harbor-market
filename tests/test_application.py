@@ -1,3 +1,5 @@
+"""Use cases against an in-memory repository port."""
+
 from copy import deepcopy
 
 import pytest
@@ -24,14 +26,19 @@ from harbor_market.domain import (
 
 
 class MemorySessionRepository:
+    """In-memory SessionRepository with revisions and an injectable rejected save."""
+
     def __init__(self) -> None:
+        """Start empty, accepting saves."""
         self.records: dict[str, SessionRecord] = {}
         self.reject_save = False
 
     def add(self, session: TradingSession) -> None:
+        """Store a copy of the session at revision 0."""
         self.records[session.session_id] = SessionRecord(deepcopy(session), (), 0)
 
     def get(self, session_id: str) -> SessionRecord | None:
+        """Return a copy of the stored record."""
         record = self.records.get(session_id)
         if record is None:
             return None
@@ -40,6 +47,7 @@ class MemorySessionRepository:
     def save(
         self, session: TradingSession, events: tuple[Event, ...], expected_revision: int
     ) -> bool:
+        """Save when the revision matches and saves are not rejected."""
         record = self.records[session.session_id]
         if self.reject_save or record.revision != expected_revision:
             return False
@@ -50,6 +58,7 @@ class MemorySessionRepository:
 
 
 def test_req_usecase_start_trade_advance_and_read_keep_event_history() -> None:
+    """REQ-USECASE: every action goes through the port and is kept as an event."""
     repository: SessionRepository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     buy = BuyGoods(repository).execute(session.session_id, Good.GRAIN, 2)
@@ -70,6 +79,7 @@ def test_req_usecase_start_trade_advance_and_read_keep_event_history() -> None:
 
 
 def test_req_usecase_unknown_and_invalid_actions_leave_session_unchanged() -> None:
+    """REQ-USECASE: unknown sessions and invalid trades change nothing."""
     repository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     before = ReadSession(repository).execute(session.session_id)
@@ -85,6 +95,7 @@ def test_req_usecase_unknown_and_invalid_actions_leave_session_unchanged() -> No
 
 
 def test_req_usecase_stale_revision_is_reported_as_a_conflict() -> None:
+    """REQ-USECASE: a rejected save is reported as a conflict and nothing is stored."""
     repository = MemorySessionRepository()
     session = StartSession(repository, lambda: "session-1").execute()
     repository.reject_save = True

@@ -1,3 +1,5 @@
+"""Django ORM adapter for the application session repository port."""
+
 from types import MappingProxyType
 from typing import cast
 
@@ -21,7 +23,10 @@ from harbor_market.infrastructure.models import SessionEventRecord, TradingSessi
 
 
 class DjangoSessionRepository:
+    """Session repository on the Django ORM, with revisions and an event log."""
+
     def add(self, session: TradingSession) -> None:
+        """Insert the session as a new record at revision 0."""
         TradingSessionRecord.objects.create(
             session_id=session.session_id,
             day=session.day,
@@ -32,6 +37,7 @@ class DjangoSessionRepository:
         )
 
     def get(self, session_id: str) -> SessionRecord | None:
+        """Return the stored session, its events and revision, or None."""
         with transaction.atomic():
             row = TradingSessionRecord.objects.filter(session_id=session_id).first()
             if row is None:
@@ -52,6 +58,7 @@ class DjangoSessionRepository:
     def save(
         self, session: TradingSession, events: tuple[Event, ...], expected_revision: int
     ) -> bool:
+        """Update the record and append events atomically if the revision is unchanged."""
         with transaction.atomic():
             changed = TradingSessionRecord.objects.filter(
                 session_id=session.session_id, revision=expected_revision

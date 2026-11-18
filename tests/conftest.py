@@ -1,3 +1,5 @@
+"""Configure Django with an ephemeral secret key before the tests import it."""
+
 import os
 import secrets
 from pathlib import Path

@@ -49,6 +49,7 @@ def value(key: str, what: str, measured: float, theory: float) -> None:
 
 
 def svg(name: str, width: float, height: float, body: list[str]) -> None:
+    """Write one SVG file with a white background around the given elements."""
     head = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0f} {height:.0f}" '
         f'width="{width:.0f}" height="{height:.0f}" font-family="sans-serif" font-size="12">'
@@ -60,14 +61,17 @@ def svg(name: str, width: float, height: float, body: list[str]) -> None:
 
 
 def title(text: str) -> str:
+    """Return the bold title line of a figure."""
     return f'<text x="16" y="26" font-size="16" font-weight="bold" fill="#222">{text}</text>'
 
 
 def worth(session: TradingSession) -> int:
+    """Return coins plus the cargo valued at today's quotes."""
     return session.coins.amount + CargoValuation.value(session.cargo, session.quotes).amount
 
 
 def price(day: int, good: Good) -> int:
+    """Return the price of `good` on market day `day` (1 to 6)."""
     return MARKET[day - 1][good].price
 
 

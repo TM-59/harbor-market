@@ -19,6 +19,7 @@ PARTS = ("Statement.", "Assumptions", "Derivation.", "Code.", "Tests.")
 
 
 def refs(cell: str) -> list[tuple[str, str]]:
+    """Return the `file#token` references written in one table cell."""
     return re.findall(r"`([^`#\s]+)#([^`\n]+)`", cell)
 
 

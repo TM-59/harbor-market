@@ -1,3 +1,5 @@
+"""The Django repository against SQLite: persistence, revisions and atomic saves."""
+
 import pytest
 from django.db import IntegrityError, connection, connections
 
@@ -18,6 +20,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.django_db(transaction=True)]
 
 
 def test_req_persistence_session_and_events_survive_connection_reopen() -> None:
+    """REQ-PERSISTENCE: the session and its events survive closing every connection."""
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     events: list[Event] = [use_cases.buy.execute(session.session_id, Good.GRAIN, 2)]
@@ -39,6 +42,7 @@ def test_req_persistence_session_and_events_survive_connection_reopen() -> None:
 
 
 def test_req_revision_stale_snapshot_cannot_overwrite_a_committed_trade() -> None:
+    """REQ-REVISION: a stale snapshot cannot overwrite a committed trade."""
     repository = DjangoSessionRepository()
     session = TradingSession("session-stale")
     repository.add(session)
@@ -60,6 +64,7 @@ def test_req_revision_stale_snapshot_cannot_overwrite_a_committed_trade() -> Non
 
 
 def test_req_atomic_failed_event_insert_rolls_back_session_update() -> None:
+    """REQ-ATOMIC: a failed event insert rolls back the session update."""
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     with connection.cursor() as cursor:
@@ -80,6 +85,7 @@ def test_req_atomic_failed_event_insert_rolls_back_session_update() -> None:
 
 
 def test_req_persistence_unknown_and_invalid_actions_are_no_ops() -> None:
+    """REQ-PERSISTENCE: unknown sessions and invalid trades write nothing."""
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     before = use_cases.read.execute(session.session_id)

@@ -1,3 +1,5 @@
+"""URL routes: the health endpoint only."""
+
 from django.urls import path
 
 from harbor_market.presentation.views import health

@@ -31,11 +31,15 @@ NOT_ENOUGH_OF_GOOD = "not enough cargo of that good"
 
 
 class Good(Enum):
+    """One of the two goods traded at the harbour."""
+
     GRAIN = "grain"
     SALT = "salt"
 
 
 class Side(Enum):
+    """Whether a trade buys or sells."""
+
     BUY = "buy"
     SELL = "sell"
 
@@ -55,6 +59,7 @@ class Coins:
     amount: int
 
     def __post_init__(self) -> None:
+        """Refuse amounts that are not non-negative whole numbers."""
         if type(self.amount) is not int or self.amount < 0:
             raise ValueError(COINS_NOT_WHOLE)
 
@@ -67,6 +72,7 @@ class Cargo:
     salt: int = 0
 
     def __post_init__(self) -> None:
+        """Refuse non-whole or negative quantities and more than eight units."""
         for units in (self.grain, self.salt):
             if type(units) is not int or units < 0:
                 raise ValueError(CARGO_NOT_WHOLE)
@@ -75,9 +81,11 @@ class Cargo:
 
     @property
     def total(self) -> int:
+        """Units held of both goods together."""
         return self.grain + self.salt
 
     def held(self, good: Good) -> int:
+        """Return the units held of `good`."""
         return self.grain if good is Good.GRAIN else self.salt
 
     def changed(self, good: Good, units: int) -> Cargo:
@@ -95,6 +103,7 @@ class Quote:
     price: int
 
     def __post_init__(self) -> None:
+        """Refuse a quote without a good or with a price below one."""
         if not isinstance(self.good, Good):
             raise TypeError(QUOTE_WITHOUT_GOOD)
         if type(self.price) is not int or self.price < 1:
@@ -127,11 +136,14 @@ class CargoValuation:
 
     @staticmethod
     def value(cargo: Cargo, quotes: Quotes) -> Coins:
+        """Return what `cargo` is worth at `quotes`."""
         return Coins(sum(cargo.held(good) * quotes[good].price for good in Good))
 
 
 @dataclass(frozen=True, slots=True)
 class TradeExecuted:
+    """Event: a buy or sell happened, with the resulting coins and cargo."""
+
     session_id: str
     day: int
     side: Side
@@ -144,6 +156,8 @@ class TradeExecuted:
 
 @dataclass(frozen=True, slots=True)
 class DayAdvanced:
+    """Event: the session moved to the next day, with that day's quotes."""
+
     session_id: str
     day: int
     quotes: Quotes
@@ -151,6 +165,8 @@ class DayAdvanced:
 
 @dataclass(frozen=True, slots=True)
 class SessionSettled:
+    """Event: after day six the cargo was sold and the session settled."""
+
     session_id: str
     coins: Coins
 
@@ -169,6 +185,7 @@ class TradingSession:
     settled: bool = False
 
     def __post_init__(self) -> None:
+        """Refuse a session without identity, with an invalid day or holdings."""
         if not self.session_id:
             raise ValueError(SESSION_WITHOUT_IDENTITY)
         if type(self.day) is not int or not 1 <= self.day <= DAYS:
@@ -178,6 +195,7 @@ class TradingSession:
 
     @property
     def quotes(self) -> Quotes:
+        """Today's quotes from the market table."""
         return MARKET[self.day - 1]
 
     def _check(self, good: Good, quantity: int) -> int:
