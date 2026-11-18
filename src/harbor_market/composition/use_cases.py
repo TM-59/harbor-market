@@ -1,4 +1,5 @@
-from harbor_market.application.ports import SessionRepository
+from typing import TYPE_CHECKING
+
 from harbor_market.application.use_cases import (
     AdvanceSession,
     BuyGoods,
@@ -7,6 +8,9 @@ from harbor_market.application.use_cases import (
     StartSession,
 )
 from harbor_market.infrastructure.repository import DjangoSessionRepository
+
+if TYPE_CHECKING:
+    from harbor_market.application.ports import SessionRepository
 
 
 class TradingUseCases:

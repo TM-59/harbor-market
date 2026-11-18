@@ -138,7 +138,7 @@ def _decode_event(event_type: str, payload: object) -> Event:
 def _dict(value: object) -> dict[str, object]:
     if not isinstance(value, dict) or not all(isinstance(key, str) for key in value):
         raise ValueError("database contains an invalid event payload")
-    return cast(dict[str, object], value)
+    return cast("dict[str, object]", value)
 
 
 def _str(data: dict[str, object], key: str) -> str:

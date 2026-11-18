@@ -1,7 +1,6 @@
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from harbor_market.application.ports import SessionRecord, SessionRepository
 from harbor_market.domain import (
     DayAdvanced,
     Event,
@@ -10,6 +9,11 @@ from harbor_market.domain import (
     TradeExecuted,
     TradingSession,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from harbor_market.application.ports import SessionRecord, SessionRepository
 
 
 class SessionNotFound(LookupError):

@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import sys
 from collections import Counter, deque
-from collections.abc import Callable
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
+
+from typing import TYPE_CHECKING
 
 from harbor_market.domain import (  # noqa: E402
     CAPACITY,
@@ -32,6 +33,9 @@ from harbor_market.domain import (  # noqa: E402
     TradeExecuted,
     TradingSession,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs/theory/figures"
 ROWS: list[str] = []
@@ -149,8 +153,8 @@ def feasible_figure() -> tuple[int, int, int]:
     cell, left, top = 34, 70, 60
     body = [title("Day 3 with 38 coins: which purchases the session accepts")]
     accepted = short_of_coins = short_of_space = 0
-    for grain in range(0, CAPACITY + 2):
-        for salt in range(0, CAPACITY + 2):
+    for grain in range(CAPACITY + 2):
+        for salt in range(CAPACITY + 2):
             session = TradingSession("grid", 3, Coins(38))
             reason = ""
             try:
@@ -177,7 +181,7 @@ def feasible_figure() -> tuple[int, int, int]:
                 body.append(
                     f'<text x="{x + 15}" y="{y + 20}" text-anchor="middle" fill="#fff" font-size="11">{session.coins.amount}</text>'
                 )
-    for n in range(0, CAPACITY + 2):
+    for n in range(CAPACITY + 2):
         body.append(
             f'<text x="{left + n * cell + 15}" y="{top + (CAPACITY + 2) * cell + 12}" text-anchor="middle" fill="#444">{n}</text>'
         )

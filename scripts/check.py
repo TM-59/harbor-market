@@ -77,10 +77,10 @@ for command in commands:
         results.append(124)
     durations.append(round(time.monotonic() - command_started, 3))
 suite_counts = []
-counts = dict(tests=0, failures=0, errors=0, skipped=0)
+counts = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
 for index, (kind, requirements, _) in enumerate(test_suites):
     junit = folder / f"{kind}-pytest.xml"
-    suite_count = dict(tests=0, failures=0, errors=0, skipped=0)
+    suite_count = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
     if junit.exists():
         for case in ET.parse(junit).iter("testcase"):
             suite_count["tests"] += 1
@@ -93,62 +93,64 @@ for index, (kind, requirements, _) in enumerate(test_suites):
     for key in counts:
         counts[key] += suite_count[key]
     suite_counts.append(
-        dict(
-            kind=kind,
-            framework="pytest",
-            command=test_commands[index],
-            status="pass" if results[index] == 0 and suite_count["tests"] else "fail",
-            duration_seconds=durations[index],
-            counts=suite_count,
-            junit=str(junit) if junit.exists() else None,
-            requirements=requirements,
-            reason="test process timed out or failed to start" if results[index] == 124 else None,
-        )
+        {
+            "kind": kind,
+            "framework": "pytest",
+            "command": test_commands[index],
+            "status": "pass" if results[index] == 0 and suite_count["tests"] else "fail",
+            "duration_seconds": durations[index],
+            "counts": suite_count,
+            "junit": str(junit) if junit.exists() else None,
+            "requirements": requirements,
+            "reason": "test process timed out or failed to start"
+            if results[index] == 124
+            else None,
+        }
     )
 status = "pass" if not any(results) and counts["tests"] else "fail"
 git = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
 dirty = subprocess.run(
     ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
 ).stdout
-summary = dict(
-    schema_version=1,
-    run_id=run_id,
-    repository="TM-59/harbor-market",
-    commit=git.stdout.strip(),
-    dirty=bool(dirty),
-    started_at=started.isoformat(),
-    finished_at=datetime.now(UTC).isoformat(),
-    duration_seconds=round(time.monotonic() - clock, 3),
-    status=status,
-    exit_code=0 if status == "pass" else 1,
-    environment=dict(
-        os=platform.system(),
-        architecture=platform.machine(),
-        tools={"python": platform.python_version()},
-        jobs=1,
-        seed=None,
-    ),
-    counts=counts,
-    coverage=dict(
-        status="not_measured",
-        line_percent=None,
-        branch_percent=None,
-        reason="M3 persistence; coverage measurement remains deferred.",
-    ),
-    metrics=[
-        dict(
-            name=f"check_{index}_exit",
-            status="pass" if code == 0 else "fail",
-            value=code,
-            unit="exit_code",
-            threshold=0,
-            comparison="eq",
-            reason="check timed out or failed to start" if code == 124 else None,
-        )
+summary = {
+    "schema_version": 1,
+    "run_id": run_id,
+    "repository": "TM-59/harbor-market",
+    "commit": git.stdout.strip(),
+    "dirty": bool(dirty),
+    "started_at": started.isoformat(),
+    "finished_at": datetime.now(UTC).isoformat(),
+    "duration_seconds": round(time.monotonic() - clock, 3),
+    "status": status,
+    "exit_code": 0 if status == "pass" else 1,
+    "environment": {
+        "os": platform.system(),
+        "architecture": platform.machine(),
+        "tools": {"python": platform.python_version()},
+        "jobs": 1,
+        "seed": None,
+    },
+    "counts": counts,
+    "coverage": {
+        "status": "not_measured",
+        "line_percent": None,
+        "branch_percent": None,
+        "reason": "M3 persistence; coverage measurement remains deferred.",
+    },
+    "metrics": [
+        {
+            "name": f"check_{index}_exit",
+            "status": "pass" if code == 0 else "fail",
+            "value": code,
+            "unit": "exit_code",
+            "threshold": 0,
+            "comparison": "eq",
+            "reason": "check timed out or failed to start" if code == 124 else None,
+        }
         for index, code in enumerate(results[len(test_commands) :], 1)
     ],
-    suites=suite_counts,
-)
+    "suites": suite_counts,
+}
 text = json.dumps(summary, indent=2) + "\n"
 (folder / "summary.json").write_text(text)
 Path("test-results/summary.json").write_text(text)

@@ -32,15 +32,18 @@ def main() -> int:
     for line in index.splitlines():
         found = ROW.match(line)
         if found:
-            rows[found.group(1)] = dict(
-                page=found.group(3), figure=found.group(4), code=found.group(5), test=found.group(6)
-            )
+            rows[found.group(1)] = {
+                "page": found.group(3),
+                "figure": found.group(4),
+                "code": found.group(5),
+                "test": found.group(6),
+            }
     if not rows:
         errors.append("coverage table not found in docs/theory/README.md")
 
     sections: dict[str, tuple[str, str]] = {}
     for name, text in pages.items():
-        for head in re.finditer(r"^## (S\d\d) — .*$", text, flags=re.M):
+        for head in re.finditer(r"^## (S\d\d) — .*$", text, flags=re.MULTILINE):
             end = text.find("\n## ", head.end())
             sections[head.group(1)] = (name, text[head.end() : end if end > 0 else len(text)])
 
@@ -98,7 +101,7 @@ def main() -> int:
     mentioned = {token.rstrip("(") for _, token in refs(index)}
     init = next((ROOT / "src").glob("*/domain/__init__.py"))
     for exported in re.findall(
-        r'^    "([A-Za-z_]+)",$', init.read_text(encoding="utf-8"), flags=re.M
+        r'^    "([A-Za-z_]+)",$', init.read_text(encoding="utf-8"), flags=re.MULTILINE
     ):
         if exported not in mentioned:
             errors.append(f"domain: exported name {exported} is in neither table of the index")

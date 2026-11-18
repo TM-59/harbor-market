@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from harbor_market.domain import Event, TradingSession
+if TYPE_CHECKING:
+    from harbor_market.domain import Event, TradingSession
 
 
 @dataclass(frozen=True, slots=True)

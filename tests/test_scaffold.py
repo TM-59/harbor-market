@@ -1,7 +1,9 @@
 import subprocess
 import sys
+from typing import TYPE_CHECKING
 
-from django.test import Client
+if TYPE_CHECKING:
+    from django.test import Client
 
 
 def test_REQ_HEALTH_get_returns_json(client: Client) -> None:
