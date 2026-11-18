@@ -13,6 +13,22 @@ from types import MappingProxyType
 STARTING_COINS = 20
 CAPACITY = 8
 
+# Error messages, named once so that every raise states which rule refused the value.
+COINS_NOT_WHOLE = "coins are a non-negative whole number"
+CARGO_NOT_WHOLE = "cargo quantities are non-negative whole numbers"
+CARGO_OVER_CAPACITY = "cargo holds at most eight units"
+QUOTE_WITHOUT_GOOD = "a quote names a good"
+PRICE_NOT_POSITIVE = "a price is a positive whole number"
+SESSION_WITHOUT_IDENTITY = "a session needs an identity"
+DAY_OUT_OF_RANGE = "the day lies between one and six"
+SESSION_WITHOUT_HOLDINGS = "a session holds coins and cargo"
+SESSION_SETTLED = "the session is settled"
+GOOD_REQUIRED = "grain or salt is required"
+QUANTITY_NOT_POSITIVE = "a quantity is a positive whole number"
+NOT_ENOUGH_COINS = "not enough coins"
+NOT_ENOUGH_CARGO_SPACE = "not enough cargo space"
+NOT_ENOUGH_OF_GOOD = "not enough cargo of that good"
+
 
 class Good(Enum):
     GRAIN = "grain"
@@ -40,7 +56,7 @@ class Coins:
 
     def __post_init__(self) -> None:
         if type(self.amount) is not int or self.amount < 0:
-            raise ValueError("coins are a non-negative whole number")
+            raise ValueError(COINS_NOT_WHOLE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,9 +69,9 @@ class Cargo:
     def __post_init__(self) -> None:
         for units in (self.grain, self.salt):
             if type(units) is not int or units < 0:
-                raise ValueError("cargo quantities are non-negative whole numbers")
+                raise ValueError(CARGO_NOT_WHOLE)
         if self.total > CAPACITY:
-            raise ValueError("cargo holds at most eight units")
+            raise ValueError(CARGO_OVER_CAPACITY)
 
     @property
     def total(self) -> int:
@@ -80,9 +96,9 @@ class Quote:
 
     def __post_init__(self) -> None:
         if not isinstance(self.good, Good):
-            raise TypeError("a quote names a good")
+            raise TypeError(QUOTE_WITHOUT_GOOD)
         if type(self.price) is not int or self.price < 1:
-            raise ValueError("a price is a positive whole number")
+            raise ValueError(PRICE_NOT_POSITIVE)
 
 
 Quotes = Mapping[Good, Quote]
@@ -154,11 +170,11 @@ class TradingSession:
 
     def __post_init__(self) -> None:
         if not self.session_id:
-            raise ValueError("a session needs an identity")
+            raise ValueError(SESSION_WITHOUT_IDENTITY)
         if type(self.day) is not int or not 1 <= self.day <= DAYS:
-            raise ValueError("the day lies between one and six")
+            raise ValueError(DAY_OUT_OF_RANGE)
         if not isinstance(self.coins, Coins) or not isinstance(self.cargo, Cargo):
-            raise TypeError("a session holds coins and cargo")
+            raise TypeError(SESSION_WITHOUT_HOLDINGS)
 
     @property
     def quotes(self) -> Quotes:
@@ -166,11 +182,11 @@ class TradingSession:
 
     def _check(self, good: Good, quantity: int) -> int:
         if self.settled:
-            raise SessionClosedError("the session is settled")
+            raise SessionClosedError(SESSION_SETTLED)
         if not isinstance(good, Good):
-            raise InvalidTradeError("grain or salt is required")
+            raise InvalidTradeError(GOOD_REQUIRED)
         if type(quantity) is not int or quantity < 1:
-            raise InvalidTradeError("a quantity is a positive whole number")
+            raise InvalidTradeError(QUANTITY_NOT_POSITIVE)
         return self.quotes[good].price
 
     def buy(self, good: Good, quantity: int) -> TradeExecuted:
@@ -178,9 +194,9 @@ class TradingSession:
         price = self._check(good, quantity)
         cost = price * quantity
         if cost > self.coins.amount:
-            raise InvalidTradeError("not enough coins")
+            raise InvalidTradeError(NOT_ENOUGH_COINS)
         if self.cargo.total + quantity > CAPACITY:
-            raise InvalidTradeError("not enough cargo space")
+            raise InvalidTradeError(NOT_ENOUGH_CARGO_SPACE)
         self.coins = Coins(self.coins.amount - cost)
         self.cargo = self.cargo.changed(good, quantity)
         return self._trade(Side.BUY, good, quantity, price)
@@ -189,7 +205,7 @@ class TradingSession:
         """Exchange cargo for coins at today's quote. Nothing changes when the trade is invalid."""
         price = self._check(good, quantity)
         if quantity > self.cargo.held(good):
-            raise InvalidTradeError("not enough cargo of that good")
+            raise InvalidTradeError(NOT_ENOUGH_OF_GOOD)
         self.coins = Coins(self.coins.amount + price * quantity)
         self.cargo = self.cargo.changed(good, -quantity)
         return self._trade(Side.SELL, good, quantity, price)
@@ -202,7 +218,7 @@ class TradingSession:
     def advance(self) -> DayAdvanced | SessionSettled:
         """Go to the next day; from day six, sell what is left at day-six quotes and settle."""
         if self.settled:
-            raise SessionClosedError("the session is settled")
+            raise SessionClosedError(SESSION_SETTLED)
         if self.day < DAYS:
             self.day += 1
             return DayAdvanced(self.session_id, self.day, self.quotes)

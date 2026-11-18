@@ -84,6 +84,20 @@ class DjangoSessionRepository:
         return True
 
 
+UNKNOWN_EVENT_TYPE = "database contains unknown event type: {}"
+INVALID_PAYLOAD = "database contains an invalid event payload"
+FIELD_NOT_TEXT = "database event field {} must be text"
+FIELD_NOT_INTEGER = "database event field {} must be an integer"
+
+
+class StoredEventError(TypeError, ValueError):
+    """A stored event does not have the shape the repository wrote.
+
+    It is a ValueError (the stored value is wrong) and a TypeError (the value has the
+    wrong type), so callers that caught ValueError keep working.
+    """
+
+
 def _encode_event(event: Event) -> tuple[str, dict[str, object]]:
     if isinstance(event, TradeExecuted):
         return "trade_executed", {
@@ -132,24 +146,24 @@ def _decode_event(event_type: str, payload: object) -> Event:
         )
     if event_type == "session_settled":
         return SessionSettled(_str(data, "session_id"), Coins(_int(data, "coins")))
-    raise ValueError(f"database contains unknown event type: {event_type}")
+    raise StoredEventError(UNKNOWN_EVENT_TYPE.format(event_type))
 
 
 def _dict(value: object) -> dict[str, object]:
     if not isinstance(value, dict) or not all(isinstance(key, str) for key in value):
-        raise ValueError("database contains an invalid event payload")
+        raise StoredEventError(INVALID_PAYLOAD)
     return cast("dict[str, object]", value)
 
 
 def _str(data: dict[str, object], key: str) -> str:
     value = data[key]
     if not isinstance(value, str):
-        raise ValueError(f"database event field {key} must be text")
+        raise StoredEventError(FIELD_NOT_TEXT.format(key))
     return value
 
 
 def _int(data: dict[str, object], key: str) -> int:
     value = data[key]
     if type(value) is not int:
-        raise ValueError(f"database event field {key} must be an integer")
+        raise StoredEventError(FIELD_NOT_INTEGER.format(key))
     return value
