@@ -46,4 +46,4 @@ Tests named `scripts/theory_figs.py#…` are measurements recorded in [figures/v
 
 Reviewed for this handbook: all of `src/harbor_market/domain/model.py` (the eighteen names exported by `src/harbor_market/domain/__init__.py`), the two Import Linter contracts in `pyproject.toml`, the application port, ORM repository and composition wiring, and the domain, application and persistence tests. Presentation remains health-only; playable routes are M4.
 
-The program is unchanged by this handbook: it adds `scripts/theory_figs.py`, `scripts/theory_check.py`, two Makefile targets, one Ruff per-file setting and these pages.
+The program is unchanged by this handbook: it adds `scripts/theory_figs.py`, `scripts/theory_check.py`, two Makefile targets and these pages.
