@@ -13,6 +13,7 @@ from harbor_market.application.use_cases import (
     StartSession,
 )
 from harbor_market.domain import (
+    DAYS,
     Coins,
     Event,
     Good,
@@ -55,16 +56,17 @@ def test_req_usecase_start_trade_advance_and_read_keep_event_history() -> None:
     sell = SellGoods(repository).execute(session.session_id, Good.GRAIN, 1)
     advance = AdvanceSession(repository)
     events: list[Event] = [buy, sell]
-    for _ in range(5):
-        events.append(advance.execute(session.session_id))
+    events.extend(advance.execute(session.session_id) for _ in range(5))
     settled = advance.execute(session.session_id)
     events.append(settled)
 
     record = ReadSession(repository).execute(session.session_id)
     assert settled == SessionSettled("session-1", Coins(23))
-    assert record.session.settled and record.session.cargo.total == 0
+    assert record.session.settled
+    assert record.session.cargo.total == 0
     assert record.events == tuple(events)
-    assert record.revision == len(events) == 8
+    assert record.revision == len(events)
+    assert len(events) == 2 + DAYS  # buy and sell, five advances, the settlement
 
 
 def test_req_usecase_unknown_and_invalid_actions_leave_session_unchanged() -> None:
@@ -92,4 +94,5 @@ def test_req_usecase_stale_revision_is_reported_as_a_conflict() -> None:
 
     record = ReadSession(repository).execute(session.session_id)
     assert record.session.coins == Coins(20)
-    assert record.events == () and record.revision == 0
+    assert record.events == ()
+    assert record.revision == 0

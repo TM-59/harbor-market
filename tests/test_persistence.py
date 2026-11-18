@@ -4,6 +4,7 @@ from django.db import IntegrityError, connection, connections
 from harbor_market.application.use_cases import SessionNotFoundError
 from harbor_market.composition.use_cases import build_use_cases
 from harbor_market.domain import (
+    DAYS,
     Coins,
     Event,
     Good,
@@ -20,8 +21,7 @@ def test_req_persistence_session_and_events_survive_connection_reopen() -> None:
     use_cases = build_use_cases()
     session = use_cases.start.execute()
     events: list[Event] = [use_cases.buy.execute(session.session_id, Good.GRAIN, 2)]
-    for _ in range(5):
-        events.append(use_cases.advance.execute(session.session_id))
+    events.extend(use_cases.advance.execute(session.session_id) for _ in range(5))
     events.append(use_cases.advance.execute(session.session_id))
     assert events[-1] == SessionSettled(session.session_id, Coins(26))
 
@@ -34,7 +34,8 @@ def test_req_persistence_session_and_events_survive_connection_reopen() -> None:
         settled=True,
     )
     assert reopened.events == tuple(events)
-    assert reopened.revision == len(events) == 7
+    assert reopened.revision == len(events)
+    assert len(events) == 1 + DAYS  # one buy, five advances, the settlement
 
 
 def test_req_revision_stale_snapshot_cannot_overwrite_a_committed_trade() -> None:
@@ -43,7 +44,8 @@ def test_req_revision_stale_snapshot_cannot_overwrite_a_committed_trade() -> Non
     repository.add(session)
     first = repository.get(session.session_id)
     stale = repository.get(session.session_id)
-    assert first is not None and stale is not None
+    assert first is not None
+    assert stale is not None
 
     first_event = first.session.buy(Good.GRAIN, 1)
     assert repository.save(first.session, (first_event,), first.revision)
@@ -53,7 +55,8 @@ def test_req_revision_stale_snapshot_cannot_overwrite_a_committed_trade() -> Non
     stored = repository.get(session.session_id)
     assert stored is not None
     assert stored.session.coins == Coins(17)
-    assert stored.revision == 1 and stored.events == (first_event,)
+    assert stored.revision == 1
+    assert stored.events == (first_event,)
 
 
 def test_req_atomic_failed_event_insert_rolls_back_session_update() -> None:
@@ -72,7 +75,8 @@ def test_req_atomic_failed_event_insert_rolls_back_session_update() -> None:
     record = build_use_cases().read.execute(session.session_id)
     assert record.session.coins == Coins(20)
     assert record.session.cargo.total == 0
-    assert record.events == () and record.revision == 0
+    assert record.events == ()
+    assert record.revision == 0
 
 
 def test_req_persistence_unknown_and_invalid_actions_are_no_ops() -> None:
