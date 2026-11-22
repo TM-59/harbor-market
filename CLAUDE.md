@@ -15,3 +15,5 @@
 - Style: `make fmt` rewrites, `make check-style` = `make lint` (Ruff format check + every Ruff rule) and
   `make typecheck` (mypy strict). No ignore files, excludes or inline suppressions; fix the code. The only
   rules left out are the pairs Ruff marks incompatible (D203/D213, COM812) and S101 in tests (pytest asserts).
+- Story playback controls (#15): there are no screens or story scenes. A pull request that adds a timed
+  story scene adds skip, 2x fast-forward, 0.5x slow, pause and resume in the same pull request.
